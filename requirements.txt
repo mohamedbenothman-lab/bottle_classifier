@@ -1,0 +1,18 @@
+# Core Computer Vision
+opencv-python
+numpy
+
+# Deep Learning (PyTorch)
+torch
+torchvision
+
+# Data Science & Metrics
+scikit-learn
+pillow
+
+# Utilities
+tqdm
+pandas
+
+
+tensorboard
