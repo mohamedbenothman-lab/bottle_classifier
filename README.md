@@ -1,7 +1,7 @@
 # bottle_classifier
 his project is an automated industrial quality control system designed to detect defects on bottle rims (sealing surfaces) using Computer Vision and Deep Learning. It utilizes a high-speed preprocessing pipeline followed by an ensemble CNN architecture to identify chips, cracks, and other anomalies.  
-##📂 Project StructurePlaintext├── assets/             
-# Model weights (model.pt) and validation metadata
+## 📂 Project Structure
+├── assets/             # Model weights (model.pt) and validation metadata
 ├── core/               # Core inspection logic (bottle_inspector.py)[cite: 4, 5]
 ├── utils/              # UI and smoothing helpers
 ├── runs/               # TensorBoard training logs[cite: 9, 10]
