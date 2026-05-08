@@ -52,6 +52,8 @@ python preprocess.py --dataset path/to/images --cache-dir path/to/output
 ### 2. Train the Model
 
 Choose your pipeline based on available hardware:
+> [!IMPORTANT]
+if you are using the V2 you need to use all the files that have V2 in their name instead of the basic ones
 
 ```bash
 # Standard — lightweight, works on any GPU
