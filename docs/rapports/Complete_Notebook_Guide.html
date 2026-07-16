@@ -1,0 +1,2228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rim Defect Detection — Complete Notebook Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+:root {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: #ffffff;
+  --accent-blue: #3b82f6;
+  --accent-indigo: #6366f1;
+  --accent-teal: #14b8a6;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+  --accent-emerald: #10b981;
+  --accent-purple: #8b5cf6;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-light: #f1f5f9;
+  --sidebar-width: 280px;
+  --header-gradient: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  background: #f1f5f9;
+  display: flex;
+}
+
+/* Sidebar */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-light);
+  overflow-y: auto;
+  z-index: 100;
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebar-header {
+  padding: 24px 20px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebar-header h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent-teal);
+  margin-bottom: 4px;
+}
+
+.sidebar-header p {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.sidebar-nav { padding: 12px 0; }
+
+.sidebar-nav a {
+  display: block;
+  padding: 6px 20px;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 13px;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-nav a:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.05);
+  border-left-color: var(--accent-blue);
+}
+
+.sidebar-nav .l2 { padding-left: 32px; font-size: 12px; }
+.sidebar-nav .l3 { padding-left: 44px; font-size: 11px; }
+.sidebar-nav .l-new a { color: var(--accent-amber); }
+.sidebar-nav .l-new a::before { content: "✦ "; font-size: 10px; }
+
+/* Main content */
+.main {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  min-height: 100vh;
+}
+
+/* Header banner */
+.doc-header {
+  background: var(--header-gradient);
+  padding: 60px 48px 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+.doc-header::before {
+  content: '';
+  position: absolute;
+  top: -50%; right: -20%;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.doc-header::after {
+  content: '';
+  position: absolute;
+  bottom: -40%; left: -10%;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(20,184,166,0.1) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.doc-header h1 {
+  font-size: 36px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.doc-header .subtitle {
+  font-size: 16px;
+  color: #94a3b8;
+  position: relative;
+  z-index: 1;
+  max-width: 700px;
+}
+
+.doc-header .meta {
+  margin-top: 20px;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.doc-header .meta-item {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.doc-header .meta-item strong {
+  color: var(--accent-teal);
+}
+
+/* Content area */
+.content {
+  padding: 40px 48px;
+  max-width: 960px;
+}
+
+/* Typography */
+.content h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--bg-primary);
+  margin: 48px 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 3px solid;
+  border-image: linear-gradient(90deg, var(--accent-blue), var(--accent-indigo), var(--accent-teal)) 1;
+}
+
+.content h1:first-child { margin-top: 0; }
+
+.content h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 32px 0 12px;
+  padding-left: 12px;
+  border-left: 4px solid var(--accent-blue);
+}
+
+.content h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #334155;
+  margin: 24px 0 8px;
+}
+
+.content h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #475569;
+  margin: 20px 0 8px;
+}
+
+.content p {
+  margin-bottom: 16px;
+  color: #334155;
+}
+
+.content strong {
+  color: #0f172a;
+}
+
+.content a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.content a:hover {
+  text-decoration: underline;
+}
+
+/* Code blocks */
+.content pre {
+  background: #1e293b !important;
+  border-radius: 12px;
+  padding: 20px 24px !important;
+  margin: 16px 0 24px;
+  overflow-x: auto;
+  border: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+}
+
+.content pre code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e2e8f0;
+}
+
+/* Inline code */
+.content code {
+  background: #eef2ff;
+  color: #4338ca;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+}
+
+.content pre code {
+  background: transparent;
+  color: #e2e8f0;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Code syntax highlighting overrides */
+.codehilite { background: transparent !important; }
+.codehilite pre { background: #1e293b !important; }
+
+/* Tables */
+.content table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 16px 0 24px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.content table thead {
+  background: linear-gradient(135deg, #1e293b, #334155);
+}
+
+.content table th {
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 16px;
+  text-align: left;
+}
+
+.content table td {
+  padding: 10px 16px;
+  font-size: 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.content table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.content table tbody tr:hover {
+  background: #eef2ff;
+}
+
+/* Blockquotes */
+.content blockquote {
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border-left: 4px solid var(--accent-blue);
+  padding: 16px 20px;
+  margin: 16px 0 24px;
+  border-radius: 0 8px 8px 0;
+}
+
+.content blockquote p {
+  margin: 4px 0;
+  color: #1e40af;
+}
+
+/* Lists */
+.content ul, .content ol {
+  margin: 8px 0 16px;
+  padding-left: 24px;
+}
+
+.content li {
+  margin-bottom: 4px;
+  color: #334155;
+}
+
+/* Horizontal rules */
+.content hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #cbd5e1, transparent);
+  margin: 40px 0;
+}
+
+/* Special "NEW" markers */
+.content h1:contains("[NEW]"),
+.content h2:contains("[NEW]") {
+  border-left-color: var(--accent-amber);
+}
+
+.content h1:contains("[NEW]")::after,
+.content h2:contains("[NEW]")::after {
+  content: " NEW";
+  font-size: 0.6em;
+  background: var(--accent-amber);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* Callout containers for notes/tips */
+.callout {
+  padding: 16px 20px;
+  margin: 16px 0 24px;
+  border-radius: 10px;
+  border-left: 4px solid;
+  font-size: 14px;
+}
+
+.callout-tip { background: #ecfdf5; border-color: var(--accent-emerald); }
+.callout-warn { background: #fffbeb; border-color: var(--accent-amber); }
+.callout-info { background: #eff6ff; border-color: var(--accent-blue); }
+
+/* Scrollbar styling */
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+.sidebar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .doc-header { padding: 32px 20px; }
+  .doc-header h1 { font-size: 24px; }
+  .content { padding: 24px 20px; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h2>Rim Guide</h2>
+    <p>28 sections &bull; 1863 lines</p>
+  </div>
+  <div class="sidebar-nav">
+    <a class="l1" href="#1-what-are-we-building">1. What Are We Building?</a>
+    <a class="l2" href="#the-two-stage-cascade-approach">The Two-Stage (Cascade) Approach</a>
+    <a class="l1" href="#2-the-dataset">2. The Dataset</a>
+    <a class="l2" href="#what-do-the-images-look-like">What do the images look like?</a>
+    <a class="l2" href="#the-problem-the-rim-is-small">The problem: The rim is small</a>
+    <a class="l2" href="#class-imbalance-the-big-challenge">Class imbalance (the big challenge)</a>
+    <a class="l2" href="#training---validation-split">Training / Validation Split</a>
+    <a class="l1" href="#3-environment-setup-imports">3. Environment Setup & Imports</a>
+    <a class="l2" href="#what-happens-in-this-cell">What happens in this cell?</a>
+    <a class="l2" href="#critical-cuda-memory-config">Critical: CUDA memory config</a>
+    <a class="l2" href="#the-imports">The imports</a>
+    <a class="l2" href="#optional-imports-with-safety-nets">Optional imports (with safety nets)</a>
+    <a class="l2" href="#imagenet-normalisation-constants">ImageNet Normalisation Constants</a>
+    <a class="l1" href="#4-configuration-cli-arguments">4. Configuration (CLI Arguments)</a>
+    <a class="l2" href="#what-is-a-cli-argument">What is a CLI argument?</a>
+    <a class="l2" href="#the-argument-parser">The argument parser</a>
+    <a class="l2" href="#key-arguments">Key Arguments</a>
+    <a class="l3" href="#file-paths">File Paths</a>
+    <a class="l3" href="#training-schedule">Training Schedule</a>
+    <a class="l3" href="#hyperparameters">Hyperparameters</a>
+    <a class="l3" href="#flags">Flags</a>
+    <a class="l2" href="#how-this-runs-on-kaggle">How this runs on Kaggle</a>
+    <a class="l1" href="#if-running-in-a-notebook-no-command-line">If running in a notebook (no command line)</a>
+    <a class="l2" href="#special-swin-needs-imgsize-256">Special: Swin needs img_size = 256</a>
+    <a class="l1" href="#5-stage-1-efficientnet-b0-the-fast-filter">5. Stage 1: EfficientNet-B0 (The Fast Filter)</a>
+    <a class="l2" href="#what-is-stage-1">What is Stage 1?</a>
+    <a class="l2" href="#why-is-it-separate">Why is it separate?</a>
+    <a class="l2" href="#why-full-images">Why full images?</a>
+    <a class="l2" href="#training-stage-1">Training Stage 1</a>
+    <a class="l2" href="#important-bug-fix-double-dip-imbalance">Important bug fix: Double-dip imbalance</a>
+    <a class="l1" href="#6-custom-augmentation-classes">6. Custom Augmentation Classes</a>
+    <a class="l2" href="#what-is-data-augmentation">What is data augmentation?</a>
+    <a class="l2" href="#our-custom-augmentations">Our custom augmentations</a>
+    <a class="l3" href="#radialblur">RadialBlur</a>
+    <a class="l3" href="#specularhighlight">SpecularHighlight</a>
+    <a class="l3" href="#scratchsimulation">ScratchSimulation</a>
+    <a class="l3" href="#sectormask">SectorMask</a>
+    <a class="l3" href="#rimspecificaug">RimSpecificAug</a>
+    <a class="l1" href="#7-image-transforms">7. Image Transforms</a>
+    <a class="l2" href="#two-pipelines-training-and-validation">Two pipelines: Training and Validation</a>
+    <a class="l2" href="#maketraintransformimgsize-heavytrue">`_make_train_transform(img_size, heavy=True)`</a>
+    <a class="l3" href="#light-mode-heavyfalse-phases-1-2">Light mode (heavy=False) — Phases 1 & 2</a>
+    <a class="l3" href="#heavy-mode-heavytrue-phase-3">Heavy mode (heavy=True) — Phase 3</a>
+    <a class="l1" href="#our-custom-augs">Our custom augs:</a>
+    <a class="l3" href="#fallback">Fallback</a>
+    <a class="l2" href="#makevaltransformimgsize">`_make_val_transform(img_size)`</a>
+    <a class="l1" href="#8-dataset-class-rimdataset">8. Dataset Class (RimDataset)</a>
+    <a class="l2" href="#what-is-a-dataset-in-pytorch">What is a Dataset in PyTorch?</a>
+    <a class="l2" href="#rimdataset-features">RimDataset features</a>
+    <a class="l3" href="#constructor">Constructor</a>
+    <a class="l3" href="#caching-important-for-speed">Caching (important for speed)</a>
+    <a class="l3" href="#readimgself-path-size">`_read_img(self, path, size)`</a>
+    <a class="l3" href="#getitemself-idx">`__getitem__(self, idx)`</a>
+    <a class="l1" href="#9-data-loading">9. Data Loading</a>
+    <a class="l2" href="#loadsamplescroppeddir-csvpath">`_load_samples(cropped_dir, csv_path)`</a>
+    <a class="l2" href="#splitsamplessamples-valfrac-testfrac-seed">`_split_samples(samples, val_frac, test_frac, seed)`</a>
+    <a class="l2" href="#oversampleminoritytrainsamples-targetratio10">`_oversample_minority(train_samples, target_ratio=1.0)`</a>
+    <a class="l2" href="#makesamplertrainsamples">`_make_sampler(train_samples)`</a>
+    <a class="l2" href="#makeloaderstrain-val-test-args-heavyaug">`_make_loaders(train, val, test, args, heavy_aug)`</a>
+    <a class="l3" href="#training-dataloader">Training DataLoader</a>
+    <a class="l3" href="#validation-dataloader">Validation DataLoader</a>
+    <a class="l3" href="#test-dataloader">Test DataLoader</a>
+    <a class="l2" href="#what-are-workers">What are workers?</a>
+    <a class="l1" href="#10-attention-modules">10. Attention Modules</a>
+    <a class="l2" href="#what-is-attention">What is attention?</a>
+    <a class="l2" href="#attentionpool2d">AttentionPool2d</a>
+    <a class="l2" href="#cbam-convolutional-block-attention-module">CBAM — Convolutional Block Attention Module</a>
+    <a class="l3" href="#bouncer-1-channel-attention">Bouncer 1: Channel Attention</a>
+    <a class="l3" href="#bouncer-2-spatial-attention">Bouncer 2: Spatial Attention</a>
+    <a class="l1" href="#11-ensemblemodelv6">11. EnsembleModelV6</a>
+    <a class="l2" href="#the-big-idea">The big idea</a>
+    <a class="l2" href="#the-three-backbones">The three backbones</a>
+    <a class="l3" href="#1-swin-transformer-v2-tiny">1. Swin Transformer V2 Tiny</a>
+    <a class="l3" href="#2-efficientnet-b3">2. EfficientNet-B3</a>
+    <a class="l3" href="#3-convnext-small">3. ConvNeXt-Small</a>
+    <a class="l2" href="#architecture-diagram-simplified">Architecture diagram (simplified)</a>
+    <a class="l2" href="#cross-attention-fusion">Cross-Attention Fusion</a>
+    <a class="l2" href="#classification-head">Classification Head</a>
+    <a class="l2" href="#swinbridge-the-shape-adapter">SwinBridge — The Shape Adapter</a>
+    <a class="l1" href="#input-b-h-w-c-swin-output">Input: (B, H, W, C) — Swin output</a>
+    <a class="l1" href="#output-b-c-h-w-what-the-rest-expects">Output: (B, C, H, W) — what the rest expects</a>
+    <a class="l1" href="#12-loss-functions">12. Loss Functions</a>
+    <a class="l2" href="#what-is-a-loss-function">What is a loss function?</a>
+    <a class="l2" href="#focallosswithlogits">FocalLossWithLogits</a>
+    <a class="l2" href="#asymmetric-loss-asl">Asymmetric Loss (ASL)</a>
+    <a class="l2" href="#combinedloss">CombinedLoss</a>
+    <a class="l1" href="#13-ema">13. EMA</a>
+    <a class="l2" href="#what-does-ema-do">What does EMA do?</a>
+    <a class="l2" href="#how-it-works">How it works</a>
+    <a class="l2" href="#warmup-decay">Warmup decay</a>
+    <a class="l2" href="#why-use-ema">Why use EMA?</a>
+    <a class="l1" href="#14-mixup---cutmix">14. MixUp / CutMix</a>
+    <a class="l2" href="#what-problem-do-they-solve">What problem do they solve?</a>
+    <a class="l2" href="#mixup">MixUp</a>
+    <a class="l2" href="#cutmix">CutMix</a>
+    <a class="l2" href="#when-are-they-used">When are they used?</a>
+    <a class="l1" href="#15-tta">15. TTA</a>
+    <a class="l2" href="#what-is-test-time-augmentation">What is Test-Time Augmentation?</a>
+    <a class="l2" href="#how-it-works">How it works</a>
+    <a class="l2" href="#8-d4-views">8 D4 views</a>
+    <a class="l2" href="#why-not-always-use-tta">Why not always use TTA?</a>
+    <a class="l1" href="#16-validation-threshold-sweep">16. Validation & Threshold Sweep</a>
+    <a class="l2" href="#validatemodel-loader-device">`_validate(model, loader, device, ...)`</a>
+    <a class="l2" href="#sweepthresholdmodel-loader-device">`_sweep_threshold(model, loader, device, ...)`</a>
+    <a class="l3" href="#why-not-use-05">Why not use 0.5?</a>
+    <a class="l3" href="#how-it-works">How it works</a>
+    <a class="l1" href="#17-bn-recalibration">17. BN Recalibration</a>
+    <a class="l2" href="#what-is-batch-normalisation">What is Batch Normalisation?</a>
+    <a class="l2" href="#why-recalibrate">Why recalibrate?</a>
+    <a class="l2" href="#recalibratebnmodel-loader-device-nbatches25">`_recalibrate_bn(model, loader, device, n_batches=25)`</a>
+    <a class="l1" href="#18-platt-scaling">18. Platt Scaling</a>
+    <a class="l2" href="#what-is-calibration">What is calibration?</a>
+    <a class="l1" href="#input-raw-model-logit">Input: raw model logit</a>
+    <a class="l1" href="#output-calibrated-probability">Output: calibrated probability</a>
+    <a class="l2" href="#when-the-model-says-90">When the model says 90%</a>
+    <a class="l2" href="#how-it-is-saved">How it is saved</a>
+    <a class="l1" href="#19-three-phase-training">19. Three-Phase Training</a>
+    <a class="l2" href="#why-three-phases">Why three phases?</a>
+    <a class="l2" href="#phase-1-head-warm-up-5-epochs">Phase 1: Head Warm-Up (5 epochs)</a>
+    <a class="l2" href="#phase-2-head-last-blocks-8-epochs">Phase 2: Head + Last Blocks (8 epochs)</a>
+    <a class="l2" href="#phase-3-full-fine-tuning-27-epochs">Phase 3: Full Fine-Tuning (27 epochs)</a>
+    <a class="l2" href="#phase-transition-code">Phase transition code</a>
+    <a class="l1" href="#20-amp">20. AMP</a>
+    <a class="l2" href="#what-is-mixed-precision">What is Mixed Precision?</a>
+    <a class="l2" href="#when-to-use-what">When to use what</a>
+    <a class="l2" href="#what-is-a-gradscaler">What is a GradScaler?</a>
+    <a class="l1" href="#21-training-loop">21. Training Loop</a>
+    <a class="l2" href="#high-level-flow">High-level flow</a>
+    <a class="l2" href="#detailed-breakdown">Detailed breakdown</a>
+    <a class="l3" href="#1-seed-setup">1. Seed Setup</a>
+    <a class="l3" href="#2-data-preparation">2. Data Preparation</a>
+    <a class="l3" href="#3-model-construction">3. Model Construction</a>
+    <a class="l3" href="#4-resume-from-checkpoint">4. Resume from Checkpoint</a>
+    <a class="l3" href="#5-loss-setup">5. Loss Setup</a>
+    <a class="l3" href="#6-phase-loop">6. Phase Loop</a>
+    <a class="l3" href="#7-training-batch-loop">7. Training Batch Loop</a>
+    <a class="l3" href="#8-validation">8. Validation</a>
+    <a class="l3" href="#9-early-stopping">9. Early Stopping</a>
+    <a class="l3" href="#10-swa-finalisation">10. SWA Finalisation</a>
+    <a class="l3" href="#11-platt-calibration">11. Platt Calibration</a>
+    <a class="l3" href="#12-cross-validation-results">12. Cross-Validation Results</a>
+    <a class="l1" href="#save-best-fold">Save best fold</a>
+    <a class="l1" href="#22-cascade-inference-pipeline">22. Cascade Inference Pipeline</a>
+    <a class="l2" href="#the-two-stages-detailed">The two stages (detailed)</a>
+    <a class="l3" href="#stage-1-efficientnet-b0-full-image">Stage 1: EfficientNet-B0 (Full Image)</a>
+    <a class="l3" href="#stage-2-5-fold-ensemble-cropped-rim">Stage 2: 5-Fold Ensemble (Cropped Rim)</a>
+    <a class="l2" href="#cascadepredictfullimgtensor-croptensor">`cascade_predict(full_img_tensor, crop_tensor)`</a>
+    <a class="l2" href="#extractrimcrop-the-rim-cropper">`extract_rim_crop` — The rim cropper</a>
+    <a class="l2" href="#important-bgr-rgb-conversion">Important: BGR → RGB conversion</a>
+    <a class="l1" href="#23-pseudo-labeling">23. Pseudo-Labeling</a>
+    <a class="l2" href="#what-is-pseudo-labeling">What is pseudo-labeling?</a>
+    <a class="l2" href="#the-process">The process</a>
+    <a class="l3" href="#step-1-ensemble-inference-on-test-images">Step 1: Ensemble inference on test images</a>
+    <a class="l3" href="#step-2-select-confident-predictions">Step 2: Select confident predictions</a>
+    <a class="l3" href="#step-3-split-original-data-critical-bug-fix">Step 3: Split ORIGINAL data (critical bug fix)</a>
+    <a class="l1" href="#1-split-original-data-first-val-is-pure-ground-truth">1. Split ORIGINAL data first (val is pure ground-truth)</a>
+    <a class="l1" href="#2-append-pseudo-labels-only-to-training-set">2. Append pseudo-labels ONLY to training set</a>
+    <a class="l3" href="#step-4-retrain-master-model">Step 4: Retrain master model</a>
+    <a class="l1" href="#24-evaluation-metrics-report">24. Evaluation & Metrics Report</a>
+    <a class="l2" href="#how-to-evaluate-a-trained-model">How to evaluate a trained model</a>
+    <a class="l3" href="#1-auto-detect-best-fold">1. Auto-detect best fold</a>
+    <a class="l3" href="#2-load-validation-data">2. Load validation data</a>
+    <a class="l3" href="#3-inference-with-tta">3. Inference with TTA</a>
+    <a class="l3" href="#4-threshold-sweep">4. Threshold sweep</a>
+    <a class="l3" href="#5-final-report">5. Final report</a>
+    <a class="l3" href="#6-misclassified-images">6. Misclassified images</a>
+    <a class="l1" href="#25-known-bugs-fixed">25. Known Bugs Fixed</a>
+    <a class="l1" href="#26-ohem-online-hard-example-mining">26. OHEM — Online Hard Example Mining</a>
+    <a class="l2" href="#what-problem-does-it-solve">What problem does it solve?</a>
+    <a class="l2" href="#the-toddler-explanation">The Toddler Explanation</a>
+    <a class="l2" href="#how-it-works-in-the-code">How it works in the code</a>
+    <a class="l2" href="#vram-and-time-impact">VRAM and time impact</a>
+    <a class="l2" href="#what-keepfrac07-means">What `keep_frac=0.7` means</a>
+    <a class="l1" href="#27-grad-cam-dynamic-cropping">27. Grad-CAM Dynamic Cropping</a>
+    <a class="l2" href="#what-problem-does-it-solve">What problem does it solve?</a>
+    <a class="l2" href="#what-is-grad-cam">What is Grad-CAM?</a>
+    <a class="l2" href="#how-it-works-step-by-step">How it works step by step</a>
+    <a class="l3" href="#step-1-forward-pass-gradient">Step 1 — Forward pass + gradient</a>
+    <a class="l3" href="#step-2-weight-the-feature-maps">Step 2 — Weight the feature maps</a>
+    <a class="l3" href="#step-3-resize-heatmap-to-image-size">Step 3 — Resize heatmap to image size</a>
+    <a class="l3" href="#step-4-find-the-hotspot-crop">Step 4 — Find the hotspot & crop</a>
+    <a class="l2" href="#the-confidence-gate">The confidence gate</a>
+    <a class="l2" href="#architecture-flow-updated">Architecture flow (updated)</a>
+    <a class="l2" href="#vram-and-time-impact">VRAM and time impact</a>
+    <a class="l2" href="#key-implementation-detail-torchenablegrad">Key implementation detail — `torch.enable_grad()`</a>
+    <a class="l1" href="#28-glossary-terms-explained-like-you-are-5">28. Glossary — Terms Explained Like You Are 5</a>
+    <a class="l2" href="#a">A</a>
+    <a class="l2" href="#b">B</a>
+    <a class="l2" href="#c">C</a>
+    <a class="l2" href="#d">D</a>
+    <a class="l2" href="#e">E</a>
+    <a class="l2" href="#f">F</a>
+    <a class="l2" href="#g">G</a>
+    <a class="l2" href="#h">H</a>
+    <a class="l2" href="#i">I</a>
+    <a class="l2" href="#k">K</a>
+    <a class="l2" href="#l">L</a>
+    <a class="l2" href="#m">M</a>
+    <a class="l2" href="#n">N</a>
+    <a class="l2" href="#o">O</a>
+    <a class="l2" href="#p">P</a>
+    <a class="l2" href="#r">R</a>
+    <a class="l2" href="#s">S</a>
+    <a class="l2" href="#t">T</a>
+    <a class="l2" href="#v">V</a>
+    <a class="l2" href="#w">W</a>
+  </div>
+</nav>
+
+<!-- Main content -->
+<div class="main">
+  <header class="doc-header">
+    <h1>Rim Defect Detection</h1>
+    <p class="subtitle">Understand every line of the rim-defect detection notebook, even if you have never done deep learning before</p>
+    <div class="meta">
+      <div class="meta-item"><strong>Notebook:</strong> computer-vision-notebook_v4.ipynb</div>
+      <div class="meta-item"><strong>Updated:</strong> May 2026</div>
+      <div class="meta-item"><strong>Sections:</strong> 28</div>
+    </div>
+  </header>
+
+  <div class="content">
+<h1>Rim Defect Detection — Complete Notebook Guide</h1>
+<blockquote>
+<p><strong>Author:</strong> AI-Assisted Documentation<br />
+<strong>Purpose:</strong> Understand every line of the rim-defect detection notebook, even if you have never done deep learning before<br />
+<strong>Notebook:</strong> <code>computer-vision-notebook_v4.ipynb</code><br />
+<strong>Last Updated:</strong> May 2026 — Added OHEM &amp; Grad-CAM Dynamic Cropping</p>
+</blockquote>
+<hr />
+<h1>Table of Contents</h1>
+<ol>
+<li><a href="#1-what-are-we-building">What Are We Building?</a></li>
+<li><a href="#2-the-dataset">The Dataset</a></li>
+<li><a href="#3-environment-setup--imports">Environment Setup &amp; Imports</a></li>
+<li><a href="#4-configuration-cli-arguments">Configuration (CLI Arguments)</a></li>
+<li><a href="#5-stage-1-efficientnet-b0-the-fast-filter">Stage 1: EfficientNet-B0 (The Fast Filter)</a></li>
+<li><a href="#6-custom-augmentation-classes">Custom Augmentation Classes</a></li>
+<li><a href="#7-image-transforms">Image Transforms</a></li>
+<li><a href="#8-dataset-class-rimdataset">Dataset Class (RimDataset)</a></li>
+<li><a href="#9-data-loading">Data Loading — Sampling, Splitting &amp; DataLoaders</a></li>
+<li><a href="#10-attention-modules">Attention Modules — Teaching the Network to Focus</a></li>
+<li><a href="#11-ensemblemodelv6">EnsembleModelV6 — The Three-Headed Monster</a></li>
+<li><a href="#12-loss-functions">Loss Functions — The Grading System</a></li>
+<li><a href="#13-ema">EMA — Exponential Moving Average</a></li>
+<li><a href="#14-mixup--cutmix">MixUp / CutMix — The Data Hallucinator</a></li>
+<li><a href="#15-tta">TTA — Test-Time Augmentation</a></li>
+<li><a href="#16-validation--threshold-sweep">Validation &amp; Threshold Sweep</a></li>
+<li><a href="#17-bn-recalibration">BN Recalibration</a></li>
+<li><a href="#18-platt-scaling">Platt Scaling — The Confidence Fixer</a></li>
+<li><a href="#19-three-phase-training">Three-Phase Training — Progressive Unfreezing</a></li>
+<li><a href="#20-amp">AMP — Automatic Mixed Precision</a></li>
+<li><a href="#21-training-loop">Training Loop — Putting It All Together</a></li>
+<li><a href="#22-cascade-inference-pipeline">Cascade Inference Pipeline</a></li>
+<li><a href="#23-pseudo-labeling">Pseudo-Labeling</a></li>
+<li><a href="#24-evaluation--metrics-report">Evaluation &amp; Metrics Report</a></li>
+<li><a href="#25-known-bugs-fixed">Known Bugs Fixed</a></li>
+<li><strong>[NEW] <a href="#26-ohem--online-hard-example-mining">OHEM — Online Hard Example Mining</a></strong></li>
+<li><strong>[NEW] <a href="#27-grad-cam-dynamic-cropping">Grad-CAM Dynamic Cropping</a></strong></li>
+<li><a href="#28-glossary">Glossary — Terms Explained Like You Are 5</a></li>
+</ol>
+<hr />
+<h1>1. What Are We Building?</h1>
+<p>Imagine you work at a factory that makes car wheels (also called <strong>rims</strong>). After each rim is manufactured, it needs to be inspected for defects — scratches, cracks, dents, or strange spots on the surface. Doing this by hand is slow, expensive, and people get tired and miss things.</p>
+<p>We are building a <strong>computer vision system</strong> that looks at photos of rims and automatically decides: <strong>"Is this rim defective or not?"</strong></p>
+<p>The system uses <strong>deep learning</strong>, which is a type of artificial intelligence that learns from examples. We show it thousands of photos of rims (some good, some defective) and it figures out the patterns on its own.</p>
+<h2>The Two-Stage (Cascade) Approach</h2>
+<p>Think of this like airport security:</p>
+<ol>
+<li><strong>Stage 1 (The Fast Scanner):</strong> A quick, lightweight model looks at every single rim. If it's VERY confident the rim is defective, it flags it immediately. No need for the expensive scanner.</li>
+<li><strong>Stage 2 (The Full Body Scan):</strong> Only for rims that Stage 1 was unsure about. A powerful ensemble of 3 models looks very carefully at the rim surface and makes the final decision.</li>
+</ol>
+<p>This two-stage approach saves time: Stage 1 handles the easy cases, Stage 2 focuses on the hard ones.</p>
+<hr />
+<h1>2. The Dataset</h1>
+<h2>What do the images look like?</h2>
+<p>Each image is a photograph of a car rim, taken from a fixed camera angle. The images are:</p>
+<ul>
+<li><strong>1280 pixels wide × 1024 pixels tall</strong> (about the size of a computer screen)</li>
+<li><strong>Colour images</strong> (Red-Green-Blue channels, like any digital photo)</li>
+<li>The rim is somewhere in the middle of the photo</li>
+</ul>
+<h2>The problem: The rim is small</h2>
+<p>The actual rim only takes up about 40% of the image. The rest is background — the floor, the wall, the camera mount. If we feed the whole image to the model, it will waste time looking at the background. So we <strong>crop</strong> the image to focus only on the rim.</p>
+<h2>Class imbalance (the big challenge)</h2>
+<ul>
+<li><strong>82.4% of images are "GOOD"</strong> (no defect) — let us call these <strong>negatives</strong></li>
+<li><strong>17.6% of images are "DEFECTIVE"</strong> (has a scratch, crack, etc.) — let us call these <strong>positives</strong></li>
+</ul>
+<p>This is like trying to learn what a "poisonous mushroom" looks like when 82 out of every 100 mushrooms are safe. The model will be lazy and just guess "safe" every time, getting 82% accuracy — but missing every defective rim!</p>
+<p>We fix this with two tricks:</p>
+<ol>
+<li><strong>Oversampling:</strong> We take extra copies of the defective images so the model sees an equal number of good and defective examples</li>
+<li><strong>Weighted Loss:</strong> We tell the model "missing a defect is 9 times worse than a false alarm" so it tries harder</li>
+</ol>
+<h2>Training / Validation Split</h2>
+<p>We split the data:
+- <strong>80% for training</strong> — the model learns from this
+- <strong>20% for validation</strong> — we keep this hidden and use it only to check how well the model is doing</p>
+<p>We also use <strong>5-fold cross-validation</strong>: we split the data into 5 piles and train 5 separate models, each time using a different pile for validation. This gives us 5 models that we average together for better results.</p>
+<hr />
+<h1>3. Environment Setup &amp; Imports</h1>
+<h2>What happens in this cell?</h2>
+<p>Before we can do anything, we need to set up the computer's environment. Think of this like setting up a kitchen before cooking.</p>
+<h2>Critical: CUDA memory config</h2>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PYTORCH_CUDA_ALLOC_CONF&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;max_split_size_mb:64&quot;</span>
+</code></pre></div>
+
+<p><strong>What is CUDA?</strong> CUDA is NVIDIA's technology that lets us run calculations on the graphics card (GPU) instead of the main processor (CPU). GPUs are much faster at deep learning.</p>
+<p><strong>Why this line?</strong> This tells PyTorch (our deep learning library) to keep its memory allocations small. On Kaggle GPUs (which have 15 GB of RAM), memory can get fragmented — like a hard drive where files are scattered everywhere. This setting prevents crashes.</p>
+<h2>The imports</h2>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>               <span class="c1"># The main deep learning library</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>      <span class="c1"># Neural network building blocks</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torchvision</span>         <span class="c1"># Pre-built models (backbones) and transforms</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>                 <span class="c1"># OpenCV — image processing</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>         <span class="c1"># Maths with arrays</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>        <span class="c1"># Reading CSV files (like Excel)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>      <span class="c1"># Opening and saving images</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>      <span class="c1"># Progress bars</span>
+</code></pre></div>
+
+<h2>Optional imports (with safety nets)</h2>
+<p>Some libraries are optional — they make things better but the code still works without them:</p>
+<ul>
+<li><strong>albumentations</strong> — Better image augmentations (we transform images in smarter ways)</li>
+<li><strong>sklearn</strong> — For calculating AUC (a performance metric) and Platt scaling (calibrating probabilities)</li>
+<li><strong>torch._dynamo / torch.compile</strong> — Makes the model run faster on newer GPUs</li>
+</ul>
+<p>Each optional import uses a <code>try/except</code> block — if the library is not installed, the code sets a flag (like <code>_ALBU_OK = False</code>) and works around it.</p>
+<h2>ImageNet Normalisation Constants</h2>
+<div class="codehilite"><pre><span></span><code><span class="n">IMAGENET_MEAN</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.485</span><span class="p">,</span> <span class="mf">0.456</span><span class="p">,</span> <span class="mf">0.406</span><span class="p">]</span>
+<span class="n">IMAGENET_STD</span>  <span class="o">=</span> <span class="p">[</span><span class="mf">0.229</span><span class="p">,</span> <span class="mf">0.224</span><span class="p">,</span> <span class="mf">0.225</span><span class="p">]</span>
+</code></pre></div>
+
+<p>These are the average (mean) and spread (standard deviation) of pixel values across the millions of images in the ImageNet dataset. Our pretrained models were trained on ImageNet images, so we need to normalise our rim images to look the same.</p>
+<p><strong>Toddler explanation:</strong> Imagine you measure everyone's height in centimetres. But your friend measured the same people in inches. The numbers are different! ImageNet normalisation is like converting all measurements to the same unit so the model understands them.</p>
+<hr />
+<h1>4. Configuration (CLI Arguments)</h1>
+<h2>What is a CLI argument?</h2>
+<p>CLI stands for <strong>Command-Line Interface</strong>. When you run a Python script, you can pass options like:</p>
+<div class="codehilite"><pre><span></span><code>python<span class="w"> </span>notebook.py<span class="w"> </span>--batch<span class="w"> </span><span class="m">24</span><span class="w"> </span>--lr<span class="w"> </span><span class="m">0</span>.0001
+</code></pre></div>
+
+<p>These options change how the program behaves without editing the code.</p>
+<h2>The argument parser</h2>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+</code></pre></div>
+
+<p>This creates a system that reads the command-line options and stores them in a variable called <code>args</code>. We can then access <code>args.batch</code>, <code>args.lr</code>, etc. throughout the code.</p>
+<h2>Key Arguments</h2>
+<h3>File Paths</h3>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Default</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--dataset</code></td>
+<td><code>"../input/dataset-cropped-26-v6"</code></td>
+<td>Folder containing cropped rim images</td>
+</tr>
+<tr>
+<td><code>--csv</code></td>
+<td><code>"../input/dataset-cropped-26-v6/train.csv"</code></td>
+<td>CSV file with image IDs and labels</td>
+</tr>
+<tr>
+<td><code>--out</code></td>
+<td><code>"assets/model_v6_fold_best.pt"</code></td>
+<td>Where to save the best checkpoint</td>
+</tr>
+<tr>
+<td><code>--resume</code></td>
+<td><code>None</code></td>
+<td>Path to a checkpoint to resume training from</td>
+</tr>
+</tbody>
+</table>
+<h3>Training Schedule</h3>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Default</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--phase1-epochs</code></td>
+<td>5</td>
+<td>Epochs to train only the "head" (new layers)</td>
+</tr>
+<tr>
+<td><code>--phase2-epochs</code></td>
+<td>8</td>
+<td>Epochs to train head + last blocks</td>
+</tr>
+<tr>
+<td><code>--phase3-epochs</code></td>
+<td>27</td>
+<td>Epochs to train the entire model</td>
+</tr>
+<tr>
+<td><code>--early-stop</code></td>
+<td>12</td>
+<td>Stop training if no improvement for this many epochs</td>
+</tr>
+<tr>
+<td><code>--swa-start</code></td>
+<td>30</td>
+<td>When to start Stochastic Weight Averaging</td>
+</tr>
+<tr>
+<td><code>--folds</code></td>
+<td>5</td>
+<td>Number of cross-validation folds</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What is an epoch?</strong> One epoch = one complete pass through the entire training dataset. If you have 10,000 images, one epoch means the model has seen all 10,000 images once.</p>
+<h3>Hyperparameters</h3>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Default</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--batch</code></td>
+<td>24</td>
+<td>Number of images processed at once</td>
+</tr>
+<tr>
+<td><code>--lr</code></td>
+<td>5e-5</td>
+<td>Learning rate (how big each step is)</td>
+</tr>
+<tr>
+<td><code>--img-size</code></td>
+<td>256</td>
+<td>Size of input images (in pixels)</td>
+</tr>
+<tr>
+<td><code>--label-smooth</code></td>
+<td>0.02</td>
+<td>Softens labels to prevent overconfidence</td>
+</tr>
+<tr>
+<td><code>--mixup-alpha</code></td>
+<td>0.1</td>
+<td>Strength of MixUp augmentation</td>
+</tr>
+<tr>
+<td><code>--focal-gamma</code></td>
+<td>2.0</td>
+<td>Focus of Focal Loss on hard examples</td>
+</tr>
+<tr>
+<td><code>--ema-decay</code></td>
+<td>0.9998</td>
+<td>Smoothing factor for EMA</td>
+</tr>
+<tr>
+<td><code>--grad-clip</code></td>
+<td>0.5</td>
+<td>Maximum gradient value (prevents explosions)</td>
+</tr>
+<tr>
+<td><code>--accum-steps</code></td>
+<td>4</td>
+<td>Gradient accumulation steps</td>
+</tr>
+<tr>
+<td><code>--dropout-rate</code></td>
+<td>0.35</td>
+<td>Dropout probability</td>
+</tr>
+<tr>
+<td><code>--val-split</code></td>
+<td>0.2</td>
+<td>Fraction of data for validation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What is learning rate?</strong> Imagine you are trying to find the bottom of a valley in the dark. You take steps. If your steps are too big, you might step right over the bottom. If they are too small, it takes forever. Learning rate is the size of your step.</p>
+<h3>Flags</h3>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Default</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--bf16</code></td>
+<td>True</td>
+<td>Use bfloat16 precision (faster on new GPUs)</td>
+</tr>
+<tr>
+<td><code>--channels-last</code></td>
+<td>True</td>
+<td>Alternative memory layout (faster)</td>
+</tr>
+<tr>
+<td><code>--compile</code></td>
+<td>False</td>
+<td>Use torch.compile (even faster, experimental)</td>
+</tr>
+<tr>
+<td><code>--oversample</code></td>
+<td>True</td>
+<td>Duplicate minority class to balance data</td>
+</tr>
+<tr>
+<td><code>--pseudo-label</code></td>
+<td>False</td>
+<td>Enable pseudo-labeling after training</td>
+</tr>
+<tr>
+<td><code>--cache-val</code></td>
+<td>False</td>
+<td>Cache validation images in RAM</td>
+</tr>
+</tbody>
+</table>
+<h2>How this runs on Kaggle</h2>
+<p>On Kaggle, there is no command line (you are in a web browser). So the code does:</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># If running in a notebook (no command line)</span>
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">notebook_mode</span><span class="p">:</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">[])</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+</code></pre></div>
+
+<p>When <code>args=[]</code> is passed, every argument uses its default value.</p>
+<h2>Special: Swin needs img_size = 256</h2>
+<p>Swin Transformer requires the image size to be divisible by its window size (which is 8). The code overrides any other img_size to 256:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">img_size</span> <span class="o">!=</span> <span class="mi">256</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[WARN] Swin needs 256. Overriding to 256.&quot;</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="mi">256</span>
+</code></pre></div>
+
+<hr />
+<h1>5. Stage 1: EfficientNet-B0 (The Fast Filter)</h1>
+<h2>What is Stage 1?</h2>
+<p>Stage 1 is a SEPARATE, smaller model that runs BEFORE the main ensemble. Its job is:</p>
+<ul>
+<li><strong>Look at every test image</strong></li>
+<li><strong>If confident the rim is defective → flag it immediately</strong> (save the ensemble's time)</li>
+<li><strong>If unsure → let the ensemble decide</strong></li>
+</ul>
+<h2>Why is it separate?</h2>
+<p>EfficientNet-B0 is tiny (only 5 million parameters) compared to the ensemble (50+ million parameters). It runs very fast. By filtering out easy cases, we only run the expensive ensemble on the hard cases, saving compute time.</p>
+<h2>Why full images?</h2>
+<p>Stage 1 was trained on <strong>full uncropped images</strong> (1280×1024 resized to 384×384), NOT on rim crops. This is important because:</p>
+<ul>
+<li>Stage 1 sees the entire image, including background</li>
+<li>It learns context: "if the whole rim area looks OK, probably fine"</li>
+<li>The ensemble sees only the cropped rim (256×256) — zoomed in on the details</li>
+</ul>
+<h2>Training Stage 1</h2>
+<p>Stage 1 trains EfficientNet-B0 from scratch (well, from ImageNet pretrained weights) using:</p>
+<ul>
+<li><strong>Binary classification</strong> (defective vs. good)</li>
+<li><strong>BCEWithLogitsLoss</strong> with <code>pos_weight = 1.0</code> (the data is oversampled to 1:1 balance, so no extra weight needed)</li>
+<li><strong>AdamW optimizer</strong> with learning rate 1e-4</li>
+<li><strong>Cosine annealing</strong> learning rate schedule</li>
+</ul>
+<p>The checkpoint is saved to <code>STAGE1_WEIGHTS_OUT</code>.</p>
+<h2>Important bug fix: Double-dip imbalance</h2>
+<p><strong>The bug:</strong> The original code oversampled the minority class to create a 50/50 balanced dataset, BUT also used a <code>pos_weight</code> of ~9.0. This is like:</p>
+<ol>
+<li>Making sure you have equal numbers of apples and oranges</li>
+<li>Then punishing yourself 9 times harder if you miss an orange</li>
+</ol>
+<p>The model panics and guesses "orange" on everything.</p>
+<p><strong>The fix:</strong> Set <code>pos_weight = 1.0</code> when oversampling to 1:1. Balanced data = balanced weights.</p>
+<hr />
+<h1>6. Custom Augmentation Classes</h1>
+<h2>What is data augmentation?</h2>
+<p><strong>Augmentation</strong> means creating fake new training images by slightly modifying real ones. If you have 10,000 photos, augmentation can create 100,000+ different versions by rotating, flipping, adding noise, etc.</p>
+<p>Why? Because the model learns to be <strong>invariant</strong> — it learns that a scratch is still a scratch whether the image is flipped horizontally or not. This prevents the model from memorising specific images.</p>
+<h2>Our custom augmentations</h2>
+<p>These are specific to rim defect detection. They simulate real-world problems:</p>
+<h3>RadialBlur</h3>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">RadialBlur</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">ImageOnlyTransform</span><span class="p">):</span>
+</code></pre></div>
+
+<p>Simulates <strong>motion blur</strong> from the rim spinning. When a rim rotates quickly during imaging, the camera might catch it mid-spin, creating blur lines radiating from the centre.</p>
+<p><strong>How it works:</strong> Applies a diagonal blur kernel (a small matrix that smears pixels) at a random angle.</p>
+<h3>SpecularHighlight</h3>
+<p>Simulates <strong>reflections</strong> from shiny metallic surfaces. Rims are shiny — factory lighting creates bright spots (specular highlights) that can look like defects.</p>
+<p><strong>How it works:</strong> Adds a random elliptical bright spot somewhere on the image.</p>
+<h3>ScratchSimulation</h3>
+<p>Draws artificial <strong>scratches</strong> on the image — thin, random lines at random angles. This teaches the model to recognise real scratches even when they look slightly different from the training examples.</p>
+<h3>SectorMask</h3>
+<p>Blacks out (fills with the average colour) a random <strong>pie-slice</strong> of the image. This simulates:</p>
+<ul>
+<li>Occlusion (something blocking part of the rim)</li>
+<li>Partial capture (the rim wasn't fully in frame)</li>
+<li>The model learning to detect defects even when part of the rim is hidden</li>
+</ul>
+<h3>RimSpecificAug</h3>
+<p>Picks one of three modes randomly:</p>
+<ol>
+<li><strong>"vignette"</strong> — Darkens the edges of the image (like old photographs), simulating uneven lighting</li>
+<li><strong>"ring"</strong> — Adds a faint circular ring, simulating a camera artefact</li>
+<li><strong>"fixture"</strong> — Adds a thick bar on one side, simulating the mounting fixture that holds the rim</li>
+</ol>
+<hr />
+<h1>7. Image Transforms</h1>
+<h2>Two pipelines: Training and Validation</h2>
+<h2><code>_make_train_transform(img_size, heavy=True)</code></h2>
+<p>This is the <strong>training</strong> transform — it includes random augmentations to make the model robust.</p>
+<h3>Light mode (heavy=False) — Phases 1 &amp; 2</h3>
+<p>Used when the backbone is partially frozen. Faster, simpler augmentations:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">A</span><span class="o">.</span><span class="n">RandomRotate90</span><span class="p">()</span>
+<span class="n">A</span><span class="o">.</span><span class="n">HorizontalFlip</span><span class="p">()</span>
+<span class="n">A</span><span class="o">.</span><span class="n">VerticalFlip</span><span class="p">()</span>
+<span class="n">A</span><span class="o">.</span><span class="n">RandomBrightnessContrast</span><span class="p">()</span>
+<span class="n">A</span><span class="o">.</span><span class="n">GaussNoise</span><span class="p">()</span>
+<span class="n">A</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">IMAGENET_MEAN</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">IMAGENET_STD</span><span class="p">)</span>
+</code></pre></div>
+
+<h3>Heavy mode (heavy=True) — Phase 3</h3>
+<p>Everything from light mode, PLUS:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">A</span><span class="o">.</span><span class="n">ShiftScaleRotate</span><span class="p">()</span>       <span class="c1"># Shift, zoom, rotate</span>
+<span class="n">A</span><span class="o">.</span><span class="n">ElasticTransform</span><span class="p">()</span>       <span class="c1"># Stretch like rubber</span>
+<span class="n">A</span><span class="o">.</span><span class="n">HueSaturationValue</span><span class="p">()</span>     <span class="c1"># Change colours</span>
+<span class="n">A</span><span class="o">.</span><span class="n">CLAHE</span><span class="p">()</span>                  <span class="c1"># Improve local contrast</span>
+<span class="n">A</span><span class="o">.</span><span class="n">RandomGamma</span><span class="p">()</span>            <span class="c1"># Change brightness curve</span>
+<span class="n">A</span><span class="o">.</span><span class="n">ISONoise</span><span class="p">()</span>               <span class="c1"># Simulate camera sensor noise</span>
+<span class="n">A</span><span class="o">.</span><span class="n">MultiplicativeNoise</span><span class="p">()</span>    <span class="c1"># Random pixel noise</span>
+<span class="n">A</span><span class="o">.</span><span class="n">MotionBlur</span><span class="p">()</span>             <span class="c1"># Simulate camera movement</span>
+<span class="n">A</span><span class="o">.</span><span class="n">GaussianBlur</span><span class="p">()</span>           <span class="c1"># Soften the image</span>
+<span class="n">A</span><span class="o">.</span><span class="n">MedianBlur</span><span class="p">()</span>             <span class="c1"># Salt-and-pepper noise removal</span>
+<span class="n">A</span><span class="o">.</span><span class="n">CoarseDropout</span><span class="p">()</span>          <span class="c1"># Random rectangular erasures</span>
+<span class="c1"># Our custom augs:</span>
+<span class="n">RadialBlur</span><span class="p">()</span>
+<span class="n">SpecularHighlight</span><span class="p">()</span>
+<span class="n">ScratchSimulation</span><span class="p">()</span>
+<span class="n">SectorMask</span><span class="p">()</span>
+<span class="n">RimSpecificAug</span><span class="p">()</span>
+</code></pre></div>
+
+<h3>Fallback</h3>
+<p>If albumentations is not installed, the code falls back to standard torchvision transforms (only basic flips and colour jitter).</p>
+<h2><code>_make_val_transform(img_size)</code></h2>
+<p>This is the <strong>validation</strong> transform — NO randomness. Every validation run produces identical results, so we can trust the metrics:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">A</span><span class="o">.</span><span class="n">Resize</span><span class="p">(</span><span class="n">img_size</span><span class="p">,</span> <span class="n">img_size</span><span class="p">)</span>
+<span class="n">A</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">IMAGENET_MEAN</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">IMAGENET_STD</span><span class="p">)</span>
+<span class="n">A</span><span class="o">.</span><span class="n">ToTensorV2</span><span class="p">()</span>
+</code></pre></div>
+
+<p><strong>Note:</strong> RimDataset already resizes images internally, but having the Resize here ensures consistency between validation and test transforms.</p>
+<hr />
+<h1>8. Dataset Class (RimDataset)</h1>
+<h2>What is a Dataset in PyTorch?</h2>
+<p>A Dataset is like a waiter at a restaurant. The kitchen (training loop) says "I need table 5's order" (get item at index 5). The waiter brings back: the image (the food) and the label (is it good or defective?).</p>
+<h2>RimDataset features</h2>
+<h3>Constructor</h3>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">RimDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">img_size</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+</code></pre></div>
+
+<ul>
+<li><strong>samples:</strong> List of <code>(path_to_image, label)</code> tuples</li>
+<li><strong>transform:</strong> The augmentation pipeline to apply</li>
+<li><strong>img_size:</strong> Target size for the image</li>
+<li><strong>cache:</strong> Whether to load all images into RAM at startup</li>
+</ul>
+<h3>Caching (important for speed)</h3>
+<p>When <code>cache=True</code>, the dataset loads ALL images into RAM when created. This is great for validation: instead of reading from disk (slow) every time, we read from RAM (fast).</p>
+<p><strong>Warning:</strong> If you cache &gt;5000 images, the dataset prints a warning because it might exceed available RAM.</p>
+<h3><code>_read_img(self, path, size)</code></h3>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_read_img</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+    <span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&quot;RGB&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">resize</span><span class="p">((</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">),</span> <span class="n">Image</span><span class="o">.</span><span class="n">Resampling</span><span class="o">.</span><span class="n">BILINEAR</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+</code></pre></div>
+
+<p>Opens the image with PIL, converts to RGB (in case it's grayscale), resizes to the target size, and returns as a NumPy array.</p>
+<h3><code>__getitem__(self, idx)</code></h3>
+<p>This is the "waiter" method:</p>
+<ol>
+<li>Get the image path and label for index <code>idx</code></li>
+<li>If cached and available, use cached image; otherwise read from disk</li>
+<li>Apply the transform (albumentations or torchvision)</li>
+<li>Return <code>(tensor, label)</code> — a PyTorch tensor and a float label</li>
+</ol>
+<hr />
+<h1>9. Data Loading</h1>
+<p>This section covers how we load, split, and serve data to the model.</p>
+<h2><code>_load_samples(cropped_dir, csv_path)</code></h2>
+<p>Reads the CSV file, finds the actual image files on disk, and creates a list of <code>(path, label)</code> tuples.</p>
+<p><strong>Important:</strong> The CSV stores just filenames (like <code>"image_001.jpg"</code>), not full paths. This function resolves each filename against the dataset directory.</p>
+<h2><code>_split_samples(samples, val_frac, test_frac, seed)</code></h2>
+<p>Splits samples into training, validation, and test sets.</p>
+<p><strong>Stratification:</strong> The split preserves the percentage of defective samples in each set. If the full dataset has 17.6% defective, both the training and validation sets also have ~17.6% defective.</p>
+<h2><code>_oversample_minority(train_samples, target_ratio=1.0)</code></h2>
+<p>Duplicates the minority class (defective examples) so both classes are equally represented.</p>
+<p><strong>How it works:</strong></p>
+<ol>
+<li>Count good and defective samples</li>
+<li>If good=820, defective=180, we need to add 640 defective copies to make them equal</li>
+<li>Randomly pick 640 defective images (with replacement — some get picked multiple times)</li>
+<li>Add them to the training set</li>
+<li>Shuffle</li>
+</ol>
+<p>Result: The model sees 50% good, 50% defective during training. It can't be lazy and guess "good" all the time.</p>
+<h2><code>_make_sampler(train_samples)</code></h2>
+<p>An ALTERNATIVE to oversampling. Instead of duplicating samples, we create a <strong>WeightedRandomSampler</strong> that:</p>
+<ul>
+<li>Gives each defective image a HIGHER probability of being selected</li>
+<li>Gives each good image a LOWER probability</li>
+</ul>
+<p>This means every epoch, the model sees mostly defective images — but they are STILL the original images, not copies.</p>
+<p>The code uses oversampling by default (controlled by <code>--oversample</code>).</p>
+<h2><code>_make_loaders(train, val, test, args, heavy_aug)</code></h2>
+<p>Creates the three PyTorch DataLoaders:</p>
+<h3>Training DataLoader</h3>
+<ul>
+<li><strong>Batch size:</strong> <code>args.batch</code> (default 24)</li>
+<li><strong>Shuffle:</strong> Yes (or uses sampler if not oversampling)</li>
+<li><strong>Drop last:</strong> Yes (drops the last incomplete batch)</li>
+<li><strong>Workers:</strong> Up to 4 parallel processes for loading images</li>
+<li><strong>Persistent workers:</strong> Keeps workers alive between epochs (faster)</li>
+</ul>
+<h3>Validation DataLoader</h3>
+<ul>
+<li><strong>Batch size:</strong> <code>args.batch * 2</code> (48 default — no gradient needed, so we can use larger batches)</li>
+<li><strong>Shuffle:</strong> No (deterministic order)</li>
+<li><strong>Cache:</strong> Controlled by <code>--cache-val</code> (default False)</li>
+</ul>
+<h3>Test DataLoader</h3>
+<ul>
+<li>Same as validation, but smaller batch size (<code>args.batch</code>)</li>
+</ul>
+<h2>What are workers?</h2>
+<p>Loading images from disk is slow. Workers are separate processes that load images in parallel while the GPU is busy training. It is like having multiple waiters bringing food instead of just one.</p>
+<hr />
+<h1>10. Attention Modules</h1>
+<h2>What is attention?</h2>
+<p>Imagine you are looking at a photo of a rim. Your eyes naturally focus on the scratch — you do not look at every pixel equally. <strong>Attention</strong> is the same idea for neural networks: the model learns WHERE to look.</p>
+<h2>AttentionPool2d</h2>
+<p>Normal pooling averages ALL pixels equally:</p>
+<div class="codehilite"><pre><span></span><code>Pooling output = (pixel_1 + pixel_2 + ... + pixel_N) / N
+</code></pre></div>
+
+<p>Attention pooling learns which pixels are important:</p>
+<div class="codehilite"><pre><span></span><code>Attention output = weight_1 × pixel_1 + weight_2 × pixel_2 + ... 
+</code></pre></div>
+
+<p>The weights are learned during training. The model learns to focus on the defect location (like a scratch) and ignore clean areas.</p>
+<p><strong>How it works:</strong></p>
+<ol>
+<li>A 1×1 convolution scores every spatial position</li>
+<li>Softmax normalises these scores to sum to 1.0</li>
+<li>The weighted sum of all positions becomes the output</li>
+</ol>
+<h2>CBAM — Convolutional Block Attention Module</h2>
+<p>CBAM is like having two bouncers at a club:</p>
+<h3>Bouncer 1: Channel Attention</h3>
+<p>Each image has 3 colour channels (Red, Green, Blue). But inside the model, there are HUNDREDS of channels (each detecting different features — edges, textures, patterns). Channel attention asks: "Which channels are most useful for detecting defects?"</p>
+<p><strong>How it works:</strong></p>
+<ol>
+<li>Average pool all positions → get one value per channel</li>
+<li>Max pool all positions → get another value per channel</li>
+<li>Feed both through a small neural network → get importance scores per channel</li>
+<li>Multiply each channel by its importance score</li>
+</ol>
+<h3>Bouncer 2: Spatial Attention</h3>
+<p>Spatial attention asks: "Which PIXELS are most important?" — regardless of which channel they come from.</p>
+<p><strong>How it works:</strong></p>
+<ol>
+<li>Average pool across channels → get one "average importance" map</li>
+<li>Max pool across channels → get one "max importance" map</li>
+<li>Stack them → 2-channel map</li>
+<li>Run through a 7×7 convolution → single-channel map</li>
+<li>Multiply the original feature map by this spatial attention map</li>
+</ol>
+<p>Result: The model focuses on the right CHANNELS at the right PIXELS.</p>
+<hr />
+<h1>11. EnsembleModelV6</h1>
+<h2>The big idea</h2>
+<p>Instead of one model, we use THREE different models working together. They each look at the image differently, then discuss what they found (cross-attention) and vote on the final answer.</p>
+<p>This is like having three doctors examine a patient:
+- Doctor A (Swin Transformer) is great at seeing global patterns
+- Doctor B (EfficientNet-B3) is great at efficiency and detail
+- Doctor C (ConvNeXt-Small) is great at local texture analysis</p>
+<h2>The three backbones</h2>
+<h3>1. Swin Transformer V2 Tiny</h3>
+<p><strong>Type:</strong> Vision Transformer<br />
+<strong>Strength:</strong> Captures relationships between DISTANT parts of the image</p>
+<p>Unlike CNNs that look at small local areas, Transformers look at the ENTIRE image at once. The "swin" in Swin stands for <strong>Shifted Window</strong> — it divides the image into small windows and only attends within each window, then shifts the windows and attends again. This makes it efficient while still capturing global context.</p>
+<p><strong>Pretrained:</strong> On ImageNet (millions of everyday images). We fine-tune it for rim defects.</p>
+<h3>2. EfficientNet-B3</h3>
+<p><strong>Type:</strong> Convolutional Neural Network (CNN)<br />
+<strong>Strength:</strong> Computationally efficient, good at fine details</p>
+<p>EfficientNet was designed by Google using a technique called <strong>Neural Architecture Search</strong> — an algorithm that automatically found the best way to scale width, depth, and resolution. B3 is the "medium" version.</p>
+<h3>3. ConvNeXt-Small</h3>
+<p><strong>Type:</strong> Modern CNN<br />
+<strong>Strength:</strong> Combines the best of CNNs and Transformers</p>
+<p>ConvNeXt is a modernised CNN that borrows ideas from Transformers (like GELU activation and LayerNorm) while keeping the efficiency of convolutions.</p>
+<h2>Architecture diagram (simplified)</h2>
+<div class="codehilite"><pre><span></span><code><span class="n">Image</span>
+<span class="w">  </span><span class="err">├──</span><span class="w"> </span><span class="n">Swin</span><span class="o">-</span><span class="n">Tiny</span><span class="w"> </span><span class="n">V2</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">CBAM</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">AttentionPool</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Linear</span><span class="p">(</span><span class="mi">320</span><span class="p">)</span>
+<span class="w">  </span><span class="err">├──</span><span class="w"> </span><span class="n">EfficientNet</span><span class="o">-</span><span class="n">B3</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">CBAM</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">AttentionPool</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Linear</span><span class="p">(</span><span class="mi">320</span><span class="p">)</span>
+<span class="w">  </span><span class="err">└──</span><span class="w"> </span><span class="n">ConvNeXt</span><span class="o">-</span><span class="n">Small</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">CBAM</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">AttentionPool</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Linear</span><span class="p">(</span><span class="mi">320</span><span class="p">)</span>
+<span class="w">                          </span><span class="err">│</span>
+<span class="w">                    </span><span class="p">[</span><span class="n">Cross</span><span class="o">-</span><span class="n">Attention</span><span class="w"> </span><span class="n">Fusion</span><span class="p">]</span>
+<span class="w">                          </span><span class="err">│</span>
+<span class="w">                    </span><span class="p">[</span><span class="n">Classifier</span><span class="w"> </span><span class="n">Head</span><span class="p">]</span>
+<span class="w">                          </span><span class="err">│</span>
+<span class="w">                    </span><span class="err">┌─────┴─────┐</span>
+<span class="w">               </span><span class="n">binary_head</span><span class="w">  </span><span class="n">severity_head</span>
+<span class="w">              </span><span class="p">(</span><span class="n">defective</span><span class="o">?</span><span class="p">)</span><span class="w">  </span><span class="p">(</span><span class="n">how</span><span class="w"> </span><span class="n">bad</span><span class="o">?</span><span class="p">)</span>
+</code></pre></div>
+
+<h2>Cross-Attention Fusion</h2>
+<p>After each backbone produces a 320-dimensional feature vector, the three vectors are stacked as "tokens" and passed through a <strong>Multi-Head Cross-Attention</strong> layer (8 heads).</p>
+<p><strong>How this works:</strong></p>
+<ol>
+<li>Each backbone's output is a "token" (like a word in a sentence)</li>
+<li>Cross-attention lets each token "look at" the other two tokens</li>
+<li>If Swin sees a defect but EfficientNet is unsure, Swin's confidence influences EfficientNet</li>
+<li>The result is a refined 960-dimensional vector (3 × 320)</li>
+</ol>
+<h2>Classification Head</h2>
+<p>The 960-dimensional vector goes through:</p>
+<div class="codehilite"><pre><span></span><code>Linear(960 → 512) → GELU → Dropout(0.35)
+Linear(512 → 256) → GELU → Dropout(0.35)
+Linear(256 → 128) → GELU → Dropout(0.35)
+</code></pre></div>
+
+<p>Then splits into two heads:</p>
+<ul>
+<li><strong>binary_head:</strong> Linear(128 → 1) with sigmoid → probability of defect</li>
+<li><strong>severity_head:</strong> Linear(128 → 1) with sigmoid → severity score (used only during training for regularisation)</li>
+</ul>
+<h2>SwinBridge — The Shape Adapter</h2>
+<p>Swin Transformer outputs a 4D tensor of shape <code>(Batch, Height, Width, Channels)</code>. But the rest of the model expects 3D <code>(Batch, Channels, Height, Width)</code>.</p>
+<p><strong>SwinBridge</strong> permutes the dimensions:</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Input: (B, H, W, C) — Swin output</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="c1"># Output: (B, C, H, W) — what the rest expects</span>
+</code></pre></div>
+
+<hr />
+<h1>12. Loss Functions</h1>
+<h2>What is a loss function?</h2>
+<p>The loss function is the <strong>report card</strong> for the model. After every batch of images:</p>
+<ol>
+<li>The model makes predictions</li>
+<li>The loss function compares predictions to the true labels</li>
+<li>If predictions are wrong, the loss is HIGH</li>
+<li>The model adjusts its weights to reduce the loss</li>
+</ol>
+<h2>FocalLossWithLogits</h2>
+<p><strong>Standard Cross-Entropy:</strong> Treats all mistakes equally.</p>
+<p><strong>Focal Loss:</strong> Punishes HARD examples more, easy examples less.</p>
+<p>Imagine a student studying for a test:
+- Cross-Entropy = study every topic equally
+- Focal Loss = focus more on the topics you keep getting wrong</p>
+<p><strong>Formula intuition:</strong> <code>Focal = (1 - p)^gamma × CrossEntropy</code> where <code>p</code> is the model's confidence. If the model is very confident and WRONG (<code>p ≈ 1, wrong</code>), <code>gamma</code> reduces the loss so the model focuses on other examples. If the model is unsure and RIGHT (<code>p ≈ 0.5, correct</code>), the loss stays high.</p>
+<h2>Asymmetric Loss (ASL)</h2>
+<p>Similar to Focal Loss, but treats positive and negative examples DIFFERENTLY:</p>
+<ul>
+<li><strong>gamma_pos = 1:</strong> Light focus on hard positives (defects the model missed)</li>
+<li><strong>gamma_neg = 4:</strong> Heavy focus on hard negatives (good rims the model thought were defective)</li>
+</ul>
+<p>Why? Because false alarms (saying a good rim is defective) are more costly to fix than missed defects (a defective rim shipped to a customer).</p>
+<h2>CombinedLoss</h2>
+<p>Combines the two:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">total</span> <span class="o">=</span> <span class="mf">0.35</span> <span class="err">×</span> <span class="n">FocalLoss</span> <span class="o">+</span> <span class="mf">0.40</span> <span class="err">×</span> <span class="n">ASL</span> <span class="o">+</span> <span class="mf">0.25</span> <span class="err">×</span> <span class="n">severity_MSE</span>
+</code></pre></div>
+
+<ul>
+<li><strong>0.35 × FocalLoss:</strong> Keep the standard focal weighting</li>
+<li><strong>0.40 × ASL:</strong> Heavier weight on ASL (more aggressive on hard negatives)</li>
+<li><strong>0.25 × severity_MSE:</strong> The severity head predicts a score (0 to 1). The MSE loss against the BINARY label acts as a regulariser — if the model predicts high severity, the binary prediction should also be high.</li>
+</ul>
+<hr />
+<h1>13. EMA</h1>
+<h2>What does EMA do?</h2>
+<p>EMA stands for <strong>Exponential Moving Average</strong>. It maintains a second copy of the model whose weights are the running average of ALL previous model states.</p>
+<p><strong>Toddler explanation:</strong> Imagine you are trying to draw a straight line but your hand is shaky. Every time you try, the line is slightly different. EMA takes the AVERAGE of all your attempts — the average line is much straighter than any single attempt.</p>
+<h2>How it works</h2>
+<div class="codehilite"><pre><span></span><code><span class="n">shadow_weights</span> <span class="o">=</span> <span class="n">decay</span> <span class="err">×</span> <span class="n">shadow_weights</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">decay</span><span class="p">)</span> <span class="err">×</span> <span class="n">current_weights</span>
+</code></pre></div>
+
+<p>Every time the model updates its weights, the EMA copy also updates — but it only moves 0.02% towards the new weights (with <code>decay=0.9998</code>). This means:</p>
+<ul>
+<li>The EMA model changes very slowly</li>
+<li>It averages out the noise in gradient updates</li>
+<li>The EMA model generalises better than the last checkpoint</li>
+</ul>
+<h2>Warmup decay</h2>
+<p>At the very start of training, the EMA starts with a lower decay and ramps up:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">decay</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">decay</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">step</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">10</span> <span class="o">+</span> <span class="n">step</span><span class="p">))</span>
+</code></pre></div>
+
+<p>This lets the EMA catch up quickly at first, then stabilise.</p>
+<h2>Why use EMA?</h2>
+<p>Standard practice in machine learning competitions. The EMA model almost always performs better on validation data than the raw model at any point in training.</p>
+<hr />
+<h1>14. MixUp / CutMix</h1>
+<h2>What problem do they solve?</h2>
+<p>Models can memorise training images. If you show the model the same scratch 100 times, it might learn "that exact scratch pattern" instead of learning "any scratch pattern". MixUp and CutMix prevent this by creating HYBRID images.</p>
+<h2>MixUp</h2>
+<p>Blends two images together like a double-exposure photograph:</p>
+<div class="codehilite"><pre><span></span><code>mixed_image = 0.7 × image_A + 0.3 × image_B
+mixed_label = 0.7 × label_A + 0.3 × label_B
+</code></pre></div>
+
+<p>The model sees an image that is 70% of one rim and 30% of another. The target label is also 70% / 30%. This forces the model to learn SOFT boundaries instead of hard decisions.</p>
+<h2>CutMix</h2>
+<p>Cuts a rectangle from image B and pastes it onto image A:</p>
+<div class="codehilite"><pre><span></span><code>mixed_label = (area_of_rectangle / total_area) × label_B + (1 - ratio) × label_A
+</code></pre></div>
+
+<p>The model learns to detect defects even when part of the image is replaced with something else.</p>
+<h2>When are they used?</h2>
+<p>Only during Phase 2 and Phase 3 (when the backbone is unfrozen). They are disabled in Phase 1 (when only the head is training) to avoid confusing the newly initialised layers.</p>
+<hr />
+<h1>15. TTA</h1>
+<h2>What is Test-Time Augmentation?</h2>
+<p>During inference (actual use), we run the image through the model MULTIPLE times with different transformations and average the results.</p>
+<p><strong>Toddler explanation:</strong> If you look at a photo upside down, you still recognise the face. TTA does the same for the model — it shows the image in different orientations and asks "still defective?" If all orientations agree, the answer is more trustworthy.</p>
+<h2>How it works</h2>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_tta_predict</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">imgs</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">n_views</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+    <span class="n">predictions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">each</span> <span class="n">transformation</span> <span class="p">(</span><span class="n">flip</span><span class="p">,</span> <span class="n">rotate</span><span class="p">):</span>
+        <span class="n">transformed</span> <span class="o">=</span> <span class="n">apply_transform</span><span class="p">(</span><span class="n">imgs</span><span class="p">)</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">transformed</span><span class="p">)</span>
+        <span class="n">predictions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pred</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">average</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+</code></pre></div>
+
+<h2>8 D4 views</h2>
+<p>The "D4" group includes 8 transformations:
+1. Original
+2. Horizontal flip
+3. Vertical flip
+4. Both flips
+5. Rotate 90°
+6. Rotate 90° + flip
+7. Rotate 180°
+8. Rotate 270°</p>
+<p>All 8 predictions are averaged to produce the final probability.</p>
+<h2>Why not always use TTA?</h2>
+<p>TTA is SLOW — it runs the model 8 times per image instead of once. During training validation, TTA is optional (controlled by <code>--tta-freq</code>). During final inference, it is always recommended.</p>
+<hr />
+<h1>16. Validation &amp; Threshold Sweep</h1>
+<h2><code>_validate(model, loader, device, ...)</code></h2>
+<p>Runs the model on the entire validation set. Returns:</p>
+<ul>
+<li><strong>Accuracy:</strong> What fraction of predictions were correct</li>
+<li><strong>F1 Score:</strong> The harmonic mean of precision and recall (our main metric)</li>
+<li><strong>Precision:</strong> Of all rims we called defective, how many were actually defective?</li>
+<li><strong>Recall:</strong> Of all actually defective rims, how many did we catch?</li>
+<li><strong>AUC:</strong> Area Under the ROC Curve — a measure of ranking quality</li>
+<li><strong>Raw probabilities and labels:</strong> Used later for threshold sweep</li>
+</ul>
+<h2><code>_sweep_threshold(model, loader, device, ...)</code></h2>
+<h3>Why not use 0.5?</h3>
+<p>Default threshold (0.5) assumes balanced classes. With 82% good / 18% defective, the optimal threshold is usually NOT 0.5 — it is often lower (0.3–0.4) to catch more defects.</p>
+<h3>How it works</h3>
+<p>Instead of looping through thresholds (slow), the code uses GPU broadcasting:</p>
+<ol>
+<li>Get probabilities for all validation images</li>
+<li>Create a tensor of thresholds: [0.05, 0.06, ..., 0.95]</li>
+<li>In ONE operation, compare all probabilities against all thresholds</li>
+<li>Calculate F1 for every threshold simultaneously</li>
+<li>Return the threshold that gives the best F1</li>
+</ol>
+<p>This is much faster than a Python loop.</p>
+<hr />
+<h1>17. BN Recalibration</h1>
+<h2>What is Batch Normalisation?</h2>
+<p>Batch Normalisation (BN) is a technique that normalises the outputs of each layer so they have mean 0 and standard deviation 1. This stabilises training.</p>
+<p>BN keeps <strong>running statistics</strong> — it tracks the average mean and variance of every layer's outputs during training. At inference, it uses these running statistics instead of batch statistics.</p>
+<h2>Why recalibrate?</h2>
+<p>When we use the EMA model (which is an average of weights), the BN running statistics are STALE — they were collected from the raw model, not the EMA model. If we use the EMA model with stale statistics, its outputs might be wrong.</p>
+<h2><code>_recalibrate_bn(model, loader, device, n_batches=25)</code></h2>
+<ol>
+<li>Put the model in training mode (so BN statistics update)</li>
+<li>Run 25 batches through the model WITHOUT calculating gradients</li>
+<li>The BN statistics now reflect the EMA model's behaviour</li>
+<li>Switch back to eval mode</li>
+</ol>
+<hr />
+<h1>18. Platt Scaling</h1>
+<h2>What is calibration?</h2>
+<p>Neural networks are often <strong>overconfident</strong>. A model might say "99% confident this rim is defective" when it is actually only 70% sure.</p>
+<p><strong>Platt Scaling</strong> fixes this by fitting a logistic regression model on the validation set:</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Input: raw model logit</span>
+<span class="c1"># Output: calibrated probability</span>
+<span class="n">calibrated_prob</span> <span class="o">=</span> <span class="n">sigmoid</span><span class="p">(</span><span class="n">A</span> <span class="err">×</span> <span class="n">raw_logit</span> <span class="o">+</span> <span class="n">B</span><span class="p">)</span>
+</code></pre></div>
+
+<p>Where A and B are learned to make the probabilities match reality.</p>
+<h2>When the model says 90%</h2>
+<p>After Platt scaling, if the model says 90%, it means: "Of all rims I assigned 90% probability to, about 90% were actually defective." This is called <strong>calibration</strong>.</p>
+<h2>How it is saved</h2>
+<p>The fitted calibrator (just two numbers: A and B) is saved to <code>calibrator_fold_{n}.pkl</code> and can be loaded at inference time.</p>
+<hr />
+<h1>19. Three-Phase Training</h1>
+<h2>Why three phases?</h2>
+<p>When we start with a pretrained model (trained on ImageNet — everyday objects like dogs, cats, cars), it doesn't know anything about rim defects. If we unfreeze ALL layers immediately, the model will destroy its pretrained knowledge before learning anything about rims.</p>
+<p><strong>Progressive unfreezing</strong> prevents this:</p>
+<h2>Phase 1: Head Warm-Up (5 epochs)</h2>
+<ul>
+<li><strong>Frozen:</strong> All backbone layers</li>
+<li><strong>Training:</strong> Only the classification head, cross-attention, and fusion gate</li>
+<li><strong>Learning rate:</strong> Full base_lr (5e-5)</li>
+<li><strong>Augmentations:</strong> Light</li>
+</ul>
+<p><strong>Analogy:</strong> You hired an expert chef (pretrained backbone). You teach them how to use YOUR kitchen (head layers) before retraining them on YOUR recipes.</p>
+<h2>Phase 2: Head + Last Blocks (8 epochs)</h2>
+<ul>
+<li><strong>Frozen:</strong> Backbone stems (early layers)</li>
+<li><strong>Training:</strong> Head + last few blocks of each backbone</li>
+<li><strong>Learning rate:</strong> Head = base_lr, last blocks = 0.1 × base_lr</li>
+<li><strong>Augmentations:</strong> Light</li>
+</ul>
+<p><strong>Analogy:</strong> The chef now learns to adjust their knife skills (last blocks) while keeping their core techniques (stem) unchanged.</p>
+<h2>Phase 3: Full Fine-Tuning (27 epochs)</h2>
+<ul>
+<li><strong>Frozen:</strong> Nothing</li>
+<li><strong>Training:</strong> Everything</li>
+<li><strong>Learning rate:</strong> Backbone = 0.02–0.04 × base_lr, Head = base_lr</li>
+<li><strong>Augmentations:</strong> Heavy (MixUp/CutMix, all custom augs)</li>
+</ul>
+<p><strong>Analogy:</strong> The chef now retrains completely, but they still keep their fundamental knowledge (lower learning rate for backbone).</p>
+<h2>Phase transition code</h2>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_setup_phase</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">phase</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">n_epochs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">phase</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># Freeze everything except head</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
+            <span class="k">if</span> <span class="s1">&#39;head&#39;</span> <span class="ow">in</span> <span class="n">name</span> <span class="ow">or</span> <span class="s1">&#39;fusion&#39;</span> <span class="ow">in</span> <span class="n">name</span> <span class="ow">or</span> <span class="s1">&#39;cross_attn&#39;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+                <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">elif</span> <span class="n">phase</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="c1"># Unfreeze head + last blocks of each backbone</span>
+        <span class="o">...</span>
+    <span class="k">elif</span> <span class="n">phase</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="c1"># Unfreeze everything</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+            <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+</code></pre></div>
+
+<hr />
+<h1>20. AMP</h1>
+<h2>What is Mixed Precision?</h2>
+<p>Normally, neural networks use <strong>32-bit floating point numbers</strong> (float32). AMP (Automatic Mixed Precision) uses <strong>16-bit</strong> for most calculations and 32-bit only where needed.</p>
+<p><strong>Toddler explanation:</strong> Float32 writes numbers with 7 decimal places of precision. Float16 writes numbers with 3 decimal places. Most of the time, 3 decimal places is enough — and it is TWICE as fast and uses half the memory!</p>
+<h2>When to use what</h2>
+<p>The code automatically selects the best precision:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_setup_amp</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">want_bf16</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="kc">None</span>   <span class="c1"># CPU = no AMP</span>
+
+    <span class="n">capability</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">get_device_capability</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">capability</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>  <span class="c1"># Ampere+ GPUs</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span> <span class="kc">None</span>   <span class="c1"># bfloat16 (no scaler needed)</span>
+
+    <span class="k">elif</span> <span class="n">capability</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>  <span class="c1"># Volta/Turing (V100, T4)</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span> <span class="n">GradScaler</span><span class="p">()</span>  <span class="c1"># float16 + loss scaler</span>
+</code></pre></div>
+
+<ul>
+<li><strong>Ampere+ (A100, RTX 3090, L4):</strong> bfloat16 — stable, no loss scaler needed</li>
+<li><strong>Volta/Turing (V100, T4):</strong> float16 needs a GradScaler to prevent underflow</li>
+<li><strong>CPU:</strong> No AMP</li>
+</ul>
+<h2>What is a GradScaler?</h2>
+<p>When using float16, very small gradient values can underflow to zero (they are too small to represent in 16 bits). A GradScaler MULTIPLIES the loss by a scale factor (e.g., 2^16) before backpropagation, then divides the gradients by the same factor afterwards. This keeps small gradients from vanishing.</p>
+<hr />
+<h1>21. Training Loop</h1>
+<p>This is the heart of the notebook. Everything else is preparation for this.</p>
+<h2>High-level flow</h2>
+<div class="codehilite"><pre><span></span><code>for each fold in 5 folds:
+    prepare data for this fold
+    build model
+
+    for phase in [1, 2, 3]:
+        setup optimizer (phase-appropriate LRs)
+
+        for epoch in range(n_epochs):
+            train loop:
+                for each batch:
+                    apply MixUp/CutMix (phases 2-3)
+                    forward pass (AMP autocast)
+                    calculate loss
+                    backward pass
+                    gradient accumulation
+                    optimizer step
+                    EMA update
+
+            validation (every N epochs):
+                calibrate BN
+                run validation
+                sweep threshold
+                if F1 improved:
+                    save checkpoint
+                else:
+                    early stopping counter++
+
+    finalise fold (SWA, calibration)
+    save fold results
+</code></pre></div>
+
+<h2>Detailed breakdown</h2>
+<h3>1. Seed Setup</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span> <span class="o">+</span> <span class="n">fold</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span> <span class="o">+</span> <span class="n">fold</span><span class="p">)</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span> <span class="o">+</span> <span class="n">fold</span><span class="p">)</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed_all</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span> <span class="o">+</span> <span class="n">fold</span><span class="p">)</span>
+</code></pre></div>
+
+<p>Different seed for each fold ensures each fold sees differently shuffled data.</p>
+<h3>2. Data Preparation</h3>
+<div class="codehilite"><pre><span></span><code><span class="p">(</span><span class="n">train_loader</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">_make_loaders</span><span class="p">(</span>
+    <span class="n">train_samples</span><span class="p">,</span> <span class="n">val_samples</span><span class="p">,</span> <span class="p">[],</span> <span class="n">args</span><span class="p">,</span> <span class="n">heavy_aug</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+
+<h3>3. Model Construction</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">model</span> <span class="o">=</span> <span class="n">build_model</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">channels_last</span> <span class="ow">and</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">memory_format</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">channels_last</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>Channels-last</strong> is a memory layout optimisation. Normally PyTorch stores images as <code>(batch, channel, height, width)</code> — all of the same channel together. Channels-last stores as <code>(batch, height, width, channel)</code> — all of the same pixel together. This is faster on NVIDIA GPUs.</p>
+<h3>4. Resume from Checkpoint</h3>
+<p>If <code>--resume</code> is provided, the code loads:
+- Model weights (state_dict)
+- Optimizer state (only if checkpoint phase matches current phase)
+- Epoch counter
+- Best F1 score</p>
+<p><strong>Bug fix:</strong> The optimizer is only restored when the checkpoint's phase matches the current training phase. Restoring a Phase 2 optimizer during Phase 1 would cause a crash.</p>
+<h3>5. Loss Setup</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">focal_fn</span> <span class="o">=</span> <span class="n">FocalLossWithLogits</span><span class="p">(</span><span class="n">gamma</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">focal_gamma</span><span class="p">,</span> <span class="n">pos_weight</span><span class="o">=</span><span class="n">pos_weight</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">label_smooth</span><span class="p">)</span>
+<span class="n">asl_fn</span> <span class="o">=</span> <span class="n">AsymmetricLoss</span><span class="p">(</span><span class="n">gamma_neg</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">gamma_pos</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">clip</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+<span class="n">criterion</span> <span class="o">=</span> <span class="n">CombinedLoss</span><span class="p">(</span><span class="n">focal_fn</span><span class="p">,</span> <span class="n">asl_fn</span><span class="p">,</span> <span class="n">severity_weight</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">asl_weight</span><span class="o">=</span><span class="mf">0.40</span><span class="p">)</span>
+</code></pre></div>
+
+<h3>6. Phase Loop</h3>
+<div class="codehilite"><pre><span></span><code><span class="k">for</span> <span class="n">phase</span><span class="p">,</span> <span class="n">n_epochs</span> <span class="ow">in</span> <span class="n">phases</span><span class="p">:</span>
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">_setup_phase</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">phase</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">n_epochs</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start_epoch</span><span class="p">,</span> <span class="n">n_epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+</code></pre></div>
+
+<p>When transitioning to Phase 3, the data loader is rebuilt with heavy augmentation:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="n">phase</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="p">(</span><span class="n">train_loader</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">_make_loaders</span><span class="p">(</span>
+        <span class="n">train_samples</span><span class="p">,</span> <span class="n">val_samples</span><span class="p">,</span> <span class="p">[],</span> <span class="n">args</span><span class="p">,</span> <span class="n">heavy_aug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+
+<h3>7. Training Batch Loop</h3>
+<div class="codehilite"><pre><span></span><code><span class="k">for</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="p">(</span><span class="n">imgs</span><span class="p">,</span> <span class="n">lbls</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">train_loader</span><span class="p">):</span>
+    <span class="c1"># MixUp/CutMix (phase 2+)</span>
+    <span class="k">if</span> <span class="n">phase</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">mixup_alpha</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">imgs</span><span class="p">,</span> <span class="n">lbls</span> <span class="o">=</span> <span class="n">_mixup_cutmix</span><span class="p">(</span><span class="n">imgs</span><span class="p">,</span> <span class="n">lbls</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">mixup_alpha</span><span class="p">)</span>
+
+    <span class="c1"># Forward pass with AMP</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">amp</span><span class="o">.</span><span class="n">autocast</span><span class="p">(</span><span class="n">device_type</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">amp_dtype</span><span class="p">,</span> <span class="n">enabled</span><span class="o">=</span><span class="n">use_amp</span><span class="p">):</span>
+        <span class="n">bin_logits</span><span class="p">,</span> <span class="n">sev_logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">imgs</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">bin_logits</span><span class="p">,</span> <span class="n">sev_logits</span><span class="p">,</span> <span class="n">lbls</span><span class="p">)</span> <span class="o">/</span> <span class="n">args</span><span class="o">.</span><span class="n">accum_steps</span>
+
+    <span class="c1"># Backward pass</span>
+    <span class="k">if</span> <span class="n">scaler</span><span class="p">:</span>
+        <span class="n">scaler</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+
+    <span class="c1"># Gradient accumulation</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">batch_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">args</span><span class="o">.</span><span class="n">accum_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">scaler</span><span class="p">:</span>
+            <span class="n">scaler</span><span class="o">.</span><span class="n">unscale_</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">args</span><span class="o">.</span><span class="n">grad_clip</span><span class="p">)</span>
+            <span class="n">scaler</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
+            <span class="n">scaler</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">args</span><span class="o">.</span><span class="n">grad_clip</span><span class="p">)</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">ema</span><span class="p">:</span>
+            <span class="n">ema</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</code></pre></div>
+
+<h3>8. Validation</h3>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="n">epoch</span> <span class="o">%</span> <span class="n">args</span><span class="o">.</span><span class="n">val_freq</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">_recalibrate_bn</span><span class="p">(</span><span class="n">ema_model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+    <span class="n">val_acc</span><span class="p">,</span> <span class="n">val_f1</span><span class="p">,</span> <span class="n">val_prec</span><span class="p">,</span> <span class="n">val_rec</span><span class="p">,</span> <span class="n">val_auc</span> <span class="o">=</span> <span class="n">_validate</span><span class="p">(</span>
+        <span class="n">ema_model</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="n">best_thr</span><span class="p">,</span> <span class="n">best_f1_val</span> <span class="o">=</span> <span class="n">_sweep_threshold</span><span class="p">(</span>
+        <span class="n">ema_model</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">best_f1_val</span> <span class="o">&gt;</span> <span class="n">best_f1</span><span class="p">:</span>
+        <span class="n">best_f1</span> <span class="o">=</span> <span class="n">best_f1_val</span>
+        <span class="c1"># Save checkpoint</span>
+</code></pre></div>
+
+<h3>9. Early Stopping</h3>
+<p>If validation F1 doesn't improve for <code>args.early_stop</code> (12) consecutive epochs, training stops.</p>
+<h3>10. SWA Finalisation</h3>
+<p>After all epochs, if SWA was enabled:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="n">swa_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_recalibrate_bn</span><span class="p">(</span><span class="n">swa_model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+    <span class="n">swa_f1</span> <span class="o">=</span> <span class="n">_validate</span><span class="p">(</span><span class="n">swa_model</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">swa_f1</span> <span class="o">&gt;</span> <span class="n">best_f1</span><span class="p">:</span>
+        <span class="n">best_f1</span> <span class="o">=</span> <span class="n">swa_f1</span>
+</code></pre></div>
+
+<h3>11. Platt Calibration</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">cal</span> <span class="o">=</span> <span class="n">_calibrate_model</span><span class="p">(</span><span class="n">ema_model</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+</code></pre></div>
+
+<h3>12. Cross-Validation Results</h3>
+<div class="codehilite"><pre><span></span><code><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  CROSS-VALIDATION RESULTS&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">fold</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">thr</span> <span class="ow">in</span> <span class="n">fold_results</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Fold </span><span class="si">{</span><span class="n">fold</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">: F1=</span><span class="si">{</span><span class="n">f1</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  threshold=</span><span class="si">{</span><span class="n">thr</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Mean F1: </span><span class="si">{</span><span class="n">mean_f1</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Save best fold</span>
+<span class="n">best_fold</span><span class="p">,</span> <span class="n">best_f1</span><span class="p">,</span> <span class="n">best_thr</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">fold_results</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">best_ckpt</span><span class="p">,</span> <span class="n">out_path</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best fold </span><span class="si">{</span><span class="n">best_fold</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> saved to </span><span class="si">{</span><span class="n">out_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<hr />
+<h1>22. Cascade Inference Pipeline</h1>
+<h2>The two stages (detailed)</h2>
+<h3>Stage 1: EfficientNet-B0 (Full Image)</h3>
+<ol>
+<li>Load the full 1280×1024 test image</li>
+<li>Resize to 384×384</li>
+<li>Apply standard ImageNet normalisation</li>
+<li>Run through EfficientNet-B0</li>
+<li>If probability &gt; STAGE1_THRESHOLD → <strong>predicted DEFECTIVE, STOP</strong> (no need for ensemble)</li>
+<li>If uncertain → pass to Stage 2</li>
+</ol>
+<h3>Stage 2: 5-Fold Ensemble (Cropped Rim)</h3>
+<ol>
+<li>Extract the rim crop from the image (256×256)</li>
+<li>Apply validation transform (resize + normalise)</li>
+<li>Run through all 5 fold models (each gets a vote)</li>
+<li>Average the 5 probabilities</li>
+<li>If average &gt; mean_threshold → DEFECTIVE, else GOOD</li>
+</ol>
+<h2><code>cascade_predict(full_img_tensor, crop_tensor)</code></h2>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">cascade_predict</span><span class="p">(</span><span class="n">full_img_tensor</span><span class="p">,</span> <span class="n">crop_tensor</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">stage1_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">s1_logits</span> <span class="o">=</span> <span class="n">stage1_model</span><span class="p">(</span><span class="n">full_img_tensor</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span>
+        <span class="n">s1_probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">s1_logits</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">s1_probs</span> <span class="o">&gt;=</span> <span class="n">STAGE1_THRESHOLD</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>  <span class="c1"># Defective, skip ensemble</span>
+    <span class="k">return</span> <span class="n">predict_ensemble</span><span class="p">(</span><span class="n">crop_tensor</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>  <span class="c1"># Unsure, run ensemble</span>
+</code></pre></div>
+
+<h2><code>extract_rim_crop</code> — The rim cropper</h2>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_rim_crop</span><span class="p">(</span><span class="n">img_rgb</span><span class="p">,</span> <span class="n">out_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
+    <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">img_rgb</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="c1"># Relative coordinates (reference: 1280x1024)</span>
+    <span class="n">rel_cx</span> <span class="o">=</span> <span class="p">(</span><span class="mi">364</span> <span class="o">+</span> <span class="mi">526</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1280.0</span>
+    <span class="n">rel_cy</span> <span class="o">=</span> <span class="p">(</span><span class="mi">247</span> <span class="o">+</span> <span class="mi">526</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1024.0</span>
+    <span class="n">rel_side</span> <span class="o">=</span> <span class="mf">526.0</span> <span class="o">/</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1280.0</span><span class="p">,</span> <span class="mf">1024.0</span><span class="p">)</span>
+
+    <span class="n">cx</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">rel_cx</span><span class="p">))</span>
+    <span class="n">cy</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="n">rel_cy</span><span class="p">))</span>
+    <span class="n">side</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">out_size</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span> <span class="o">*</span> <span class="n">rel_side</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">margin</span><span class="p">)))</span>
+    <span class="n">half</span> <span class="o">=</span> <span class="n">side</span> <span class="o">//</span> <span class="mi">2</span>
+
+    <span class="n">x1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">cx</span> <span class="o">-</span> <span class="n">half</span><span class="p">)</span>
+    <span class="n">y1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">cy</span> <span class="o">-</span> <span class="n">half</span><span class="p">)</span>
+    <span class="n">x2</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">cx</span> <span class="o">+</span> <span class="n">half</span><span class="p">)</span>
+    <span class="n">y2</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">cy</span> <span class="o">+</span> <span class="n">half</span><span class="p">)</span>
+
+    <span class="n">crop</span> <span class="o">=</span> <span class="n">img_rgb</span><span class="p">[</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">,</span> <span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">crop</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">crop</span> <span class="o">=</span> <span class="n">img_rgb</span><span class="p">[</span><span class="n">h</span><span class="o">//</span><span class="mi">4</span><span class="p">:</span><span class="mi">3</span><span class="o">*</span><span class="n">h</span><span class="o">//</span><span class="mi">4</span><span class="p">,</span> <span class="n">w</span><span class="o">//</span><span class="mi">4</span><span class="p">:</span><span class="mi">3</span><span class="o">*</span><span class="n">w</span><span class="o">//</span><span class="mi">4</span><span class="p">]</span>  <span class="c1"># fallback</span>
+
+    <span class="k">return</span> <span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">crop</span><span class="p">,</span> <span class="p">(</span><span class="n">out_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">))</span>
+</code></pre></div>
+
+<p><strong>Why relative coordinates?</strong> Originally the coordinates were hardcoded for 1280×1024 images. If test images have different dimensions, the crop would be wrong. Relative coordinates adapt to any image size.</p>
+<h2>Important: BGR → RGB conversion</h2>
+<p>OpenCV reads images as BGR (Blue-Green-Red) by default. But the model was trained on RGB (Red-Green-Blue). So we must convert:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">img_rgb</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">img_bgr</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2RGB</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>If you forget this:</strong> The model sees blue as red and red as blue → garbage predictions!</p>
+<hr />
+<h1>23. Pseudo-Labeling</h1>
+<h2>What is pseudo-labeling?</h2>
+<p>After training the 5-fold ensemble, we have a powerful model. We can use this model to <strong>guess</strong> labels for the test images (which have no labels). Then we retrain a master model using both the original data AND our guessed labels.</p>
+<p><strong>Toddler explanation:</strong> The teacher (ensemble) grades some ungraded homework (test images). The student (master model) learns from both the teacher-graded homework AND the officially graded homework.</p>
+<h2>The process</h2>
+<h3>Step 1: Ensemble inference on test images</h3>
+<p>All 5 fold models run inference on every test image. Each test image gets 5 probability scores. We average them.</p>
+<h3>Step 2: Select confident predictions</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">high_conf</span> <span class="o">=</span> <span class="n">all_probs</span> <span class="o">&gt;=</span> <span class="mf">0.95</span>    <span class="c1"># Very likely defective</span>
+<span class="n">low_conf</span>  <span class="o">=</span> <span class="n">all_probs</span> <span class="o">&lt;=</span> <span class="mf">0.05</span>    <span class="c1"># Very likely good</span>
+<span class="n">selected</span>  <span class="o">=</span> <span class="n">high_conf</span> <span class="o">|</span> <span class="n">low_conf</span>
+</code></pre></div>
+
+<p>We only keep predictions where ALL 5 models agree (&gt;0.95 OR &lt;0.05). This ensures we only add high-quality pseudo-labels.</p>
+<h3>Step 3: Split ORIGINAL data (critical bug fix)</h3>
+<p><strong>Original (wrong) approach:</strong> Mix pseudo-labels with original data, THEN split into train/val. This puts pseudo-labeled test images in the validation set! The model would be evaluated on its own guesses — leading to falsely high F1 scores (~0.99).</p>
+<p><strong>Fixed approach:</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 1. Split ORIGINAL data first (val is pure ground-truth)</span>
+<span class="n">orig_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">all_samples</span><span class="p">]</span>
+<span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+    <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">all_samples</span><span class="p">)),</span> <span class="n">test_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">val_split</span><span class="p">,</span>
+    <span class="n">stratify</span><span class="o">=</span><span class="n">orig_labels</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span> <span class="o">+</span> <span class="mi">999</span><span class="p">)</span>
+
+<span class="n">final_train</span> <span class="o">=</span> <span class="p">[</span><span class="n">all_samples</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">train_idx</span><span class="p">]</span>
+<span class="n">final_val</span>   <span class="o">=</span> <span class="p">[</span><span class="n">all_samples</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">val_idx</span><span class="p">]</span>
+
+<span class="c1"># 2. Append pseudo-labels ONLY to training set</span>
+<span class="n">final_train</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pseudo_samples</span><span class="p">)</span>
+<span class="n">rng</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">final_train</span><span class="p">)</span>
+</code></pre></div>
+
+<h3>Step 4: Retrain master model</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">master_f1</span><span class="p">,</span> <span class="n">master_thr</span> <span class="o">=</span> <span class="n">train_one_fold</span><span class="p">(</span>
+    <span class="n">fold</span><span class="o">=</span><span class="mi">999</span><span class="p">,</span> <span class="n">train_samples</span><span class="o">=</span><span class="n">final_train</span><span class="p">,</span> <span class="n">val_samples</span><span class="o">=</span><span class="n">final_val</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+</code></pre></div>
+
+<p>The master model is trained with <code>fold=999</code> (special fold number for pseudo-label retraining). It is saved as <code>model_v6_master.pt</code>.</p>
+<hr />
+<h1>24. Evaluation &amp; Metrics Report</h1>
+<h2>How to evaluate a trained model</h2>
+<p>The <code>run_evaluation()</code> function in cell 42 provides a comprehensive evaluation:</p>
+<h3>1. Auto-detect best fold</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">assets_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">out</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">fold_csvs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">assets_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;val_split_fold_*.csv&quot;</span><span class="p">))</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">fold_csvs</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[WARN] No fold validation CSVs found. Skipping evaluation.&quot;</span><span class="p">)</span>
+    <span class="k">return</span>
+<span class="n">COMPARE_VAL_CSV</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">fold_csvs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</code></pre></div>
+
+<h3>2. Load validation data</h3>
+<p>Creates a RimDataset from the validation split CSV and loads the saved checkpoint.</p>
+<h3>3. Inference with TTA</h3>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="n">COMPARE_TTA</span><span class="p">:</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">_tta_predict</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">imgs</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">n_views</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">logits</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">imgs</span><span class="p">)</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+</code></pre></div>
+
+<h3>4. Threshold sweep</h3>
+<p>Tests all thresholds from 0.05 to 0.95 and prints F1, Precision, Recall for each.</p>
+<h3>5. Final report</h3>
+<div class="codehilite"><pre><span></span><code><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Accuracy: </span><span class="si">{</span><span class="n">m</span><span class="p">[</span><span class="s1">&#39;acc&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2"> | F1: </span><span class="si">{</span><span class="n">m</span><span class="p">[</span><span class="s1">&#39;f1&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> | Prec: </span><span class="si">{</span><span class="n">m</span><span class="p">[</span><span class="s1">&#39;prec&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2"> | Rec: </span><span class="si">{</span><span class="n">m</span><span class="p">[</span><span class="s1">&#39;recall&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  TP: </span><span class="si">{</span><span class="n">m</span><span class="p">[</span><span class="s1">&#39;tp&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (Correct Faulty)   |  TN: </span><span class="si">{</span><span class="n">m</span><span class="p">[</span><span class="s1">&#39;tn&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (Correct Good)&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  FP: </span><span class="si">{</span><span class="n">m</span><span class="p">[</span><span class="s1">&#39;fp&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (False Alarms)     |  FN: </span><span class="si">{</span><span class="n">m</span><span class="p">[</span><span class="s1">&#39;fn&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (Missed Defects)&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<h3>6. Misclassified images</h3>
+<p>Lists the worst misclassifications — images where the model was most confidently WRONG. Useful for debugging.</p>
+<hr />
+<h1>25. Known Bugs Fixed</h1>
+<p>This notebook has undergone extensive bug fixing. Here is a summary of every bug found and fixed:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Bug</th>
+<th>Impact</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>import argparseparser</code> syntax error</td>
+<td><strong>Crash</strong></td>
+<td>Split into <code>import argparse</code> / <code>parser = argparse.ArgumentParser()</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>SwinBridge assumed sequence format <code>(B, N, C)</code></td>
+<td><strong>Crash</strong></td>
+<td>Changed to <code>x.permute(0, 3, 1, 2)</code> for 4D Swin output</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Missing CBAM, AttentionPool2d, <code>_get_out_channels</code></td>
+<td><strong>Crash</strong></td>
+<td>Restored from backup notebook</td>
+</tr>
+<tr>
+<td>4</td>
+<td>BGR→RGB not converted (OpenCV BGR → PIL RGB model)</td>
+<td><strong>Wrong predictions</strong></td>
+<td>Added <code>cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Inference used training transform (random flips/noise)</td>
+<td><strong>Non-deterministic</strong></td>
+<td>Changed to <code>_make_val_transform()</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Fold detection at module level (IndentationError)</td>
+<td><strong>Crash</strong></td>
+<td>Moved inside function at 4-space indent</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>_make_loaders</code> called transform without <code>img_size</code></td>
+<td><strong>Missing resize</strong></td>
+<td>Added <code>args.img_size</code> argument</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Stage 1 doubled imbalance (oversample + pos_weight 9.0)</td>
+<td><strong>All predictions defective</strong></td>
+<td>Set <code>pos_weight = 1.0</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Pseudo-label split included pseudo-labels in validation</td>
+<td><strong>Falsely high F1</strong></td>
+<td>Split original data first, append pseudo to train only</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>"optimizer" in locals()</code> instead of <code>"optimizer" in ckpt</code></td>
+<td><strong>No optimizer restore</strong></td>
+<td>Fixed condition</td>
+</tr>
+<tr>
+<td>11</td>
+<td>TTA block 20-space indent (should be 16)</td>
+<td><strong>IndentationError</strong></td>
+<td>Fixed indent level</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Training depended on undefined globals</td>
+<td><strong>Crash</strong></td>
+<td>Passed as parameters</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Duplicate <code>--seed</code> in argparse</td>
+<td><strong>Confusing</strong></td>
+<td>Removed duplicate</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Hardcoded <code>val_split_fold_1.csv</code></td>
+<td><strong>Wrong file</strong></td>
+<td>Dynamic fold detection + best-fold matching</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Optimizer restored unconditionally on resume</td>
+<td><strong>Phase mismatch</strong></td>
+<td>Only restore when checkpoint phase matches</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Hardcoded crop coordinates (1280×1024 only)</td>
+<td><strong>Wrong crop on other sizes</strong></td>
+<td>Relative coordinates</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Batch cap at 32</td>
+<td><strong>Underutilised GPU</strong></td>
+<td>Removed cap</td>
+</tr>
+<tr>
+<td>18</td>
+<td><code>raise FileNotFoundError</code> when no fold CSVs</td>
+<td><strong>Ugly crash</strong></td>
+<td>Graceful print + return</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Duplicate <code>STAGE1_IMG_SIZE</code></td>
+<td><strong>Confusing</strong></td>
+<td>Commented duplicate</td>
+</tr>
+<tr>
+<td>20</td>
+<td>No RAM warning for large cache</td>
+<td><strong>OOM crash</strong></td>
+<td>Warning if &gt;5000 images</td>
+</tr>
+<tr>
+<td>21</td>
+<td><code>ckpt</code> variable scope fragile</td>
+<td><strong>Potential NameError</strong></td>
+<td>Initialize <code>ckpt = {}</code> unconditionally</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Warmup LR negative on tiny datasets</td>
+<td><strong>Wrong LR</strong></td>
+<td>Guard <code>warmup_steps &gt; 0</code></td>
+</tr>
+<tr>
+<td>23</td>
+<td>Dead <code>SwinSequenceAdapter</code> class</td>
+<td><strong>Dead code</strong></td>
+<td>Removed</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Duplicate <code>if __name__</code> entries</td>
+<td><strong>Double execution</strong></td>
+<td>Removed</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1>26. OHEM — Online Hard Example Mining</h1>
+<h2>What problem does it solve?</h2>
+<p>Your dataset has 35,342 images. Most of them are <strong>easy</strong> — the model quickly learns to classify them correctly. If we train on all images equally, the model wastes 90% of its learning energy on examples it already knows perfectly.</p>
+<p><strong>OHEM (Online Hard Example Mining)</strong> solves this by dynamically filtering each mini-batch during training to keep only the images the model is struggling with most.</p>
+<h2>The Toddler Explanation</h2>
+<p>Imagine you are studying for a vocabulary test. You have 100 words. You already know 70 of them perfectly. Instead of going through all 100 every time, a smart teacher would only quiz you on the 30 words you keep getting wrong. That is OHEM.</p>
+<h2>How it works in the code</h2>
+<p>The <code>OHEMLoss</code> class wraps the existing <code>CombinedLoss</code>:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">criterion</span> <span class="o">=</span> <span class="n">OHEMLoss</span><span class="p">(</span><span class="n">CombinedLoss</span><span class="p">(</span>
+    <span class="n">FocalLossWithLogits</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>
+    <span class="n">AsymmetricLoss</span><span class="p">(),</span>
+<span class="p">),</span> <span class="n">keep_frac</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+</code></pre></div>
+
+<p>Every training step:</p>
+<ol>
+<li>A batch of 24 images is passed through the model</li>
+<li>The loss is computed <strong>individually</strong> for each of the 24 images</li>
+<li>The 24 losses are sorted from highest (hardest) to lowest (easiest)</li>
+<li>The <strong>bottom 30% (easiest images) are thrown away</strong></li>
+<li>The gradient update only uses the top 70% hardest images</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OHEMLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_logits</span><span class="p">,</span> <span class="n">sev_logits</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
+        <span class="n">per_sample</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">(</span><span class="n">bin_logits</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">],</span> <span class="o">...</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">B</span><span class="p">)]</span>
+        <span class="n">per_sample</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">per_sample</span><span class="p">)</span>        <span class="c1"># (B,) individual losses</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">B</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep</span><span class="p">))</span>              <span class="c1"># keep top 70%</span>
+        <span class="n">hard</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">per_sample</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">largest</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># select hardest k</span>
+        <span class="k">return</span> <span class="n">hard</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>                          <span class="c1"># backprop only on these</span>
+</code></pre></div>
+
+<h2>VRAM and time impact</h2>
+<ul>
+<li><strong>VRAM:</strong> Zero extra. You are doing the same forward pass, just ignoring part of the backward pass.</li>
+<li><strong>Time:</strong> Adds approximately 2–3% per epoch (the per-sample loop). Virtually free.</li>
+<li><strong>Expected gain:</strong> Forces the model to concentrate on the subtle micro-scratches and borderline cases instead of the obvious defects it already handles.</li>
+</ul>
+<h2>What <code>keep_frac=0.7</code> means</h2>
+<table>
+<thead>
+<tr>
+<th><code>keep_frac</code></th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>1.0</code></td>
+<td>Same as normal loss (no OHEM, all samples kept)</td>
+</tr>
+<tr>
+<td><code>0.7</code></td>
+<td>Keep the 70% hardest — recommended starting point</td>
+</tr>
+<tr>
+<td><code>0.5</code></td>
+<td>Very aggressive — only the worst half drives learning</td>
+</tr>
+<tr>
+<td><code>&lt; 0.4</code></td>
+<td>Too aggressive — model may become unstable</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1>27. Grad-CAM Dynamic Cropping</h1>
+<h2>What problem does it solve?</h2>
+<p>The current pipeline crops the rim to a fixed 384×384 square from the centre of the image. If a scratch is very thin (e.g., 3 pixels wide on the original image), it becomes 3 pixels wide in a 384×384 crop. When EnsembleV6 looks at this, the scratch might be invisible among all the other pixels.</p>
+<p><strong>Grad-CAM Dynamic Cropping</strong> gives the ensemble a <strong>magnifying glass</strong> focused exactly on the suspicious area that Stage 1 (B0) already spotted.</p>
+<h2>What is Grad-CAM?</h2>
+<p>Grad-CAM (<strong>Gradient-weighted Class Activation Mapping</strong>) is a technique that produces a heatmap showing <strong>which pixels of the image most influenced the model's decision</strong>.</p>
+<p><strong>Toddler explanation:</strong> After the model says "I think this rim is defective", Grad-CAM asks it "<em>why?</em> Where did you see the defect?" The answer is a coloured heat-map — bright red over the crack, dark blue over the clean areas.</p>
+<h2>How it works step by step</h2>
+<h3>Step 1 — Forward pass + gradient</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">logit</span> <span class="o">=</span> <span class="n">b0_model</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="n">logit</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>  <span class="c1"># compute gradients w.r.t. last conv layer</span>
+</code></pre></div>
+
+<h3>Step 2 — Weight the feature maps</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">weights</span> <span class="o">=</span> <span class="n">gradients</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">))</span>      <span class="c1"># average gradient per channel</span>
+<span class="n">cam</span> <span class="o">=</span> <span class="p">(</span><span class="n">weights</span> <span class="err">×</span> <span class="n">feature_maps</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>     <span class="c1"># weighted sum of feature maps</span>
+<span class="n">cam</span> <span class="o">=</span> <span class="n">relu</span><span class="p">(</span><span class="n">cam</span><span class="p">)</span>                           <span class="c1"># keep only positive contributions</span>
+</code></pre></div>
+
+<h3>Step 3 — Resize heatmap to image size</h3>
+<p>The heatmap starts small (e.g., 7×7 from the last conv layer). It is resized to the full image (e.g., 384×384) using bilinear interpolation.</p>
+<h3>Step 4 — Find the hotspot &amp; crop</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">cy</span><span class="p">,</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">argmax</span><span class="p">(</span><span class="n">cam_full</span><span class="p">)</span>               <span class="c1"># pixel with highest activation</span>
+<span class="n">half</span>   <span class="o">=</span> <span class="n">image_size</span> <span class="o">*</span> <span class="mf">0.65</span>              <span class="c1"># crop size (65% of the image)</span>
+<span class="n">patch</span>  <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="n">cy</span><span class="o">-</span><span class="n">half</span><span class="p">:</span><span class="n">cy</span><span class="o">+</span><span class="n">half</span><span class="p">,</span> <span class="n">cx</span><span class="o">-</span><span class="n">half</span><span class="p">:</span><span class="n">cx</span><span class="o">+</span><span class="n">half</span><span class="p">]</span>
+<span class="n">patch</span>  <span class="o">=</span> <span class="n">resize</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="p">(</span><span class="mi">384</span><span class="p">,</span> <span class="mi">384</span><span class="p">))</span>      <span class="c1"># resize patch to model input size</span>
+</code></pre></div>
+
+<h2>The confidence gate</h2>
+<p>Grad-CAM is only applied when B0 <strong>thinks there is a defect</strong> (prob ≥ 0.4). If B0 gives a very low probability (clean rim), we fall back to the standard rim crop — no point zooming into a hotspot that doesn't exist.</p>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="n">b0_prob</span> <span class="o">&gt;=</span> <span class="mf">0.4</span><span class="p">:</span>   <span class="c1"># B0 suspects a defect</span>
+    <span class="n">crop</span> <span class="o">=</span> <span class="n">_gradcam_crop</span><span class="p">(</span><span class="n">img_rgb</span><span class="p">,</span> <span class="n">b0_model</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>  <span class="c1"># zoom into hotspot</span>
+<span class="k">else</span><span class="p">:</span>                <span class="c1"># B0 thinks it&#39;s clean</span>
+    <span class="n">crop</span> <span class="o">=</span> <span class="n">extract_rim_crop</span><span class="p">(</span><span class="n">img_rgb</span><span class="p">,</span> <span class="n">img_size</span><span class="p">)</span>    <span class="c1"># standard crop</span>
+</code></pre></div>
+
+<h2>Architecture flow (updated)</h2>
+<div class="codehilite"><pre><span></span><code><span class="n">Full</span><span class="w"> </span><span class="n">Image</span>
+<span class="w">    </span><span class="o">|</span>
+<span class="w">    </span><span class="n">v</span>
+<span class="p">[</span><span class="n">Stage</span><span class="w"> </span><span class="mi">1</span><span class="o">:</span><span class="w"> </span><span class="n">B0</span><span class="p">]</span><span class="w">  </span><span class="err">───</span><span class="w"> </span><span class="n">prob</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.4</span><span class="w"> </span><span class="err">──────────────────────────────────┐</span>
+<span class="w">    </span><span class="o">|</span><span class="w">                                                             </span><span class="o">|</span>
+<span class="w">    </span><span class="o">|</span><span class="w"> </span><span class="n">prob</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mf">0.4</span><span class="w">                                                 </span><span class="o">|</span>
+<span class="w">    </span><span class="n">v</span><span class="w">                                                             </span><span class="o">|</span>
+<span class="p">[</span><span class="n">Grad</span><span class="o">-</span><span class="n">CAM</span><span class="w"> </span><span class="n">Heatmap</span><span class="p">]</span><span class="w">                                               </span><span class="o">|</span>
+<span class="w">    </span><span class="o">|</span><span class="w">                                                             </span><span class="o">|</span>
+<span class="w">    </span><span class="n">v</span><span class="w">                                                             </span><span class="o">|</span>
+<span class="p">[</span><span class="n">Dynamic</span><span class="w"> </span><span class="n">Crop</span><span class="o">:</span><span class="w"> </span><span class="n">zoom</span><span class="w"> </span><span class="n">into</span><span class="w"> </span><span class="n">hotspot</span><span class="p">]</span><span class="w">     </span><span class="p">[</span><span class="n">Standard</span><span class="w"> </span><span class="n">Rim</span><span class="w"> </span><span class="n">Crop</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;</span><span class="err">──────┘</span>
+<span class="w">    </span><span class="o">|</span><span class="w">                                        </span><span class="o">|</span>
+<span class="w">    </span><span class="err">└──────────────┬─────────────────────────┘</span>
+<span class="w">                   </span><span class="o">|</span>
+<span class="w">                   </span><span class="n">v</span>
+<span class="w">         </span><span class="p">[</span><span class="n">EnsembleV6</span><span class="o">:</span><span class="w"> </span><span class="n">Swin</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">EffNet</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ConvNeXt</span><span class="p">]</span>
+<span class="w">                   </span><span class="o">|</span>
+<span class="w">                   </span><span class="n">v</span>
+<span class="w">           </span><span class="p">[</span><span class="n">Final</span><span class="w"> </span><span class="n">Prediction</span><span class="p">]</span>
+</code></pre></div>
+
+<h2>VRAM and time impact</h2>
+<ul>
+<li><strong>VRAM:</strong> B0 is kept in memory during Stage 2 instead of being deleted. This costs approximately <strong>15 MB</strong> extra (B0 is tiny).</li>
+<li><strong>Time:</strong> Grad-CAM requires one forward+backward pass per image at inference. With <code>torch.enable_grad()</code> scoped only to the Grad-CAM call, this adds roughly <strong>10–15% to inference time</strong> only (not training).</li>
+<li><strong>Expected gain:</strong> On borderline images where the defect occupies &lt;5% of the crop, zooming in can be the difference between a correct and incorrect prediction.</li>
+</ul>
+<h2>Key implementation detail — <code>torch.enable_grad()</code></h2>
+<p>Normally, the entire inference loop runs inside <code>torch.no_grad()</code> to save memory. Grad-CAM <strong>requires gradients</strong> (that is how the heatmap is computed). We use <code>torch.enable_grad()</code> scoped only to the Grad-CAM call:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">test_loader</span><span class="p">:</span>
+        <span class="o">...</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">enable_grad</span><span class="p">():</span>      <span class="c1"># only here</span>
+            <span class="n">crop</span> <span class="o">=</span> <span class="n">_gradcam_crop</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># needs grad</span>
+        <span class="o">...</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="n">ensemble</span><span class="p">(</span><span class="n">crop</span><span class="p">)</span>        <span class="c1"># back to no_grad</span>
+</code></pre></div>
+
+<p>This keeps memory usage minimal while still computing the heatmap correctly.</p>
+<hr />
+<h1>28. Glossary — Terms Explained Like You Are 5</h1>
+<h2>A</h2>
+<p><strong>Accuracy</strong> — How many answers the model got right out of all answers. If 90 out of 100 are correct, accuracy is 90%.</p>
+<p><strong>AdamW</strong> — A fancy way for the model to decide HOW MUCH to change its weights each step. Like a smart hiker who adjusts step size based on the terrain.</p>
+<p><strong>AMP (Automatic Mixed Precision)</strong> — Using smaller numbers (16-bit instead of 32-bit) to make calculations twice as fast. Like counting in "dozens" instead of counting each item one by one.</p>
+<p><strong>Argparse</strong> — A tool that reads settings from the command line. Instead of editing the code to change batch size, you type <code>--batch 24</code> when you run the program.</p>
+<p><strong>Asymmetric Loss (ASL)</strong> — A loss function that penalises false negatives (missed defects) more than false positives (false alarms).</p>
+<p><strong>Attention</strong> — A mechanism that lets the model focus on important parts of an image instead of all pixels equally.</p>
+<p><strong>AUC (Area Under Curve)</strong> — A metric for binary classifiers. AUC = 1.0 is perfect; AUC = 0.5 is random guessing.</p>
+<p><strong>AUC (Area Under the ROC Curve)</strong> — A number from 0 to 1 that measures how good the model is at ranking. 1.0 = perfect, 0.5 = random guessing.</p>
+<p><strong>Augmentation</strong> — Creating fake new training images by slightly changing real ones. Like turning a photo upside down to create a "new" photo.</p>
+<h2>B</h2>
+<p><strong>Backbone</strong> — The main part of a neural network that extracts features from images. Usually pretrained on millions of everyday photos.</p>
+<p><strong>Batch</strong> — A group of images processed at the same time. Instead of looking at one image at a time, the model looks at 24 images together.</p>
+<p><strong>Batch Normalisation (BN)</strong> — A technique that keeps numbers in a healthy range as they flow through the network. Like making sure water pressure stays constant in pipes.</p>
+<p><strong>BatchNorm (BN)</strong> — A layer that normalises activations to prevent them from becoming too large or too small during training.</p>
+<p><strong>BCEWithLogitsLoss</strong> — A loss function for binary classification (good vs. defective). Combines a sigmoid activation and binary cross-entropy in one stable operation.</p>
+<p><strong>Bfloat16</strong> — A 16-bit number format used in newer GPUs. More stable than float16 because it keeps more exponent bits (for very large/small values).</p>
+<p><strong>Bfloat16 (bf16)</strong> — A 16-bit floating point format that is more numerically stable than float16. Requires a modern GPU (e.g., A100).</p>
+<p><strong>Binary classification</strong> — A task with exactly two possible outputs: defective (1) or clean (0).</p>
+<h2>C</h2>
+<p><strong>Calibration</strong> — Making the model's confidence match reality. If the model says 90%, it should be right 90% of the time.</p>
+<p><strong>CBAM</strong> — Convolutional Block Attention Module. A "where to look" mechanism that helps the model focus on important channels and pixels.</p>
+<p><strong>Channels</strong> — Each image has 3 colour channels (Red, Green, Blue). Inside the model, there can be hundreds of channels, each detecting different features (edges, textures, etc.).</p>
+<p><strong>Checkpoint</strong> — A saved snapshot of the model's weights at a specific point during training.</p>
+<p><strong>Class imbalance</strong> — When one class has many more examples than the other. Here: 82% defective vs 18% clean.</p>
+<p><strong>CLI (Command-Line Interface)</strong> — Running a program by typing commands instead of clicking buttons.</p>
+<p><strong>CNN (Convolutional Neural Network)</strong> — A type of neural network that uses small filters (convolutions) to scan images. Like moving a magnifying glass over a photo.</p>
+<p><strong>ConvNeXt</strong> — A modern CNN that borrows ideas from Transformers while keeping convolutional efficiency.</p>
+<p><strong>Cross-Attention</strong> — A mechanism where different parts of a model "talk to each other." Each backbone tells the others what it found, and they refine each other's conclusions.</p>
+<p><strong>Cross-entropy loss</strong> — The standard loss function for classification. Measures the difference between predicted probabilities and true labels.</p>
+<p><strong>Cross-Validation</strong> — Splitting data into several piles and training separate models, each using a different pile for testing. Like taking 5 different tests instead of 1.</p>
+<p><strong>CUDA</strong> — NVIDIA's technology for running calculations on the GPU. Makes deep learning much faster.</p>
+<p><strong>CutMix</strong> — A data augmentation technique that cuts a rectangle from one image and pastes it onto another, mixing their labels proportionally.</p>
+<h2>D</h2>
+<p><strong>DataLoader</strong> — PyTorch's tool for feeding data to the model in batches, with optional shuffling and parallel loading.</p>
+<p><strong>Dataset</strong> — In PyTorch, a class that knows WHERE to find each image and what its label is.</p>
+<p><strong>Defect</strong> — A flaw in the rim (scratch, crack, dent, spot).</p>
+<p><strong>Dropout</strong> — Randomly turning off some neurons during training. Prevents memorisation. Like studying without some of your notes to force deeper understanding.</p>
+<p><strong>Dynamic Cropping (Grad-CAM)</strong> — Using the B0 heatmap to crop the image around the suspected defect zone before passing it to the ensemble.</p>
+<h2>E</h2>
+<p><strong>Early stopping</strong> — Stopping training when performance stops improving to avoid overfitting.</p>
+<p><strong>EfficientNet</strong> — A family of CNN models designed by Google to be efficient (good accuracy for their size). B0 is tiny, B3 is medium, B7 is huge.</p>
+<p><strong>EMA (Exponential Moving Average)</strong> — Keeping a slow-moving average of the model's weights. The average model is usually better than the latest model.</p>
+<p><strong>Ensemble</strong> — Combining multiple models and averaging their predictions. Like asking 5 doctors instead of 1.</p>
+<p><strong>Epoch</strong> — One complete pass through the entire training dataset. If you have 10,000 photos and batch size 24, one epoch = 417 batches.</p>
+<h2>F</h2>
+<p><strong>F1 Score</strong> — The harmonic mean (fancy average) of precision and recall. Our main metric. Ranges from 0 (terrible) to 1 (perfect).</p>
+<p><strong>F1-Score</strong> — The harmonic mean of precision and recall. F1 = 1.0 is perfect; F1 = 0.0 is worst.</p>
+<p><strong>False Negative (FN)</strong> — A defective rim classified as clean. Very costly in a factory setting.</p>
+<p><strong>False Positive (FP)</strong> — A clean rim classified as defective. Causes unnecessary rework but is less dangerous.</p>
+<p><strong>Feature map</strong> — The internal representation of an image at a specific layer of the network. Like an X-ray highlighting certain patterns.</p>
+<p><strong>Fine-Tuning</strong> — Taking a pretrained model and continuing to train it on your specific data.</p>
+<p><strong>Float16</strong> — 16-bit floating point numbers. Half the precision of float32 but twice as fast. Can underflow on very small values.</p>
+<p><strong>Float32</strong> — Standard 32-bit floating point numbers. Used by default in neural networks.</p>
+<p><strong>Focal Loss</strong> — A loss function that focuses on HARD examples and ignores easy ones. Like a student who studies the topics they keep failing instead of the ones they know.</p>
+<p><strong>Fold</strong> — One split of the data in cross-validation. 5-fold CV = 5 different train/val splits.</p>
+<h2>G</h2>
+<p><strong>GELU</strong> — An activation function (Gaussian Error Linear Unit). Decides which information passes through. Smoother than ReLU.</p>
+<p><strong>GPU (Graphics Processing Unit)</strong> — A processor optimised for parallel computation. Training deep learning models on GPUs is 10-100x faster than on CPUs.</p>
+<p><strong>Grad-CAM</strong> — A technique to visualise which pixels most influenced a model's decision by computing gradients of the output with respect to the last convolutional layer.</p>
+<p><strong>Gradient</strong> — The direction and magnitude of the steepest increase in the loss function. We go in the OPPOSITE direction to reduce the loss.</p>
+<p><strong>Gradient Accumulation</strong> — Accumulating gradients over multiple batches before updating weights. Allows effective larger batch sizes on limited GPU memory.</p>
+<p><strong>Gradient Clipping</strong> — Capping gradients at a maximum value. Prevents them from exploding (growing too large and destroying the model).</p>
+<p><strong>Gradient clipping</strong> — Limiting the maximum gradient value to prevent "exploding" updates.</p>
+<h2>H</h2>
+<p><strong>Head</strong> — The final layers of a neural network that make the actual prediction. The "decision maker" after the backbone has extracted features.</p>
+<p><strong>Held-out set</strong> — A portion of data never used during training or validation, reserved only for final evaluation.</p>
+<p><strong>Hyperparameter</strong> — A setting you choose before training (like learning rate, batch size). The model does not learn these; you set them.</p>
+<h2>I</h2>
+<p><strong>ImageNet</strong> — A dataset of 14 million labelled images (dogs, cats, cars, etc.). Models pretrained on ImageNet have learned general visual features.</p>
+<p><strong>Imbalance</strong> — When one class has many more examples than another. 82% good vs 18% defective = imbalanced.</p>
+<p><strong>Inference</strong> — Using a trained model to make predictions on new data (test time).</p>
+<p><strong>Invariant</strong> — A property that doesn't change under transformations. "Defect detection should be invariant to rotation" = a scratch is still a scratch when rotated.</p>
+<h2>K</h2>
+<p><strong>K-Fold Cross-Validation</strong> — Training K models, each on a different 80/20 split of the data. Gives a robust estimate of performance.</p>
+<h2>L</h2>
+<p><strong>Label</strong> — The correct answer for an image (0 = good, 1 = defective).</p>
+<p><strong>Label Smoothing</strong> — Softening the labels from [0, 1] to [0.02, 0.98]. Prevents the model from being overconfident.</p>
+<p><strong>Label smoothing</strong> — Replacing hard labels (0 or 1) with soft labels (0.02 or 0.98) to prevent overconfidence.</p>
+<p><strong>Learning rate</strong> — How large each weight update step is. Too high = unstable training. Too low = very slow training.</p>
+<p><strong>Learning Rate (LR)</strong> — How big each step is when the model updates its weights. Too big = overshoot the optimum. Too small = take forever.</p>
+<p><strong>Logit</strong> — The raw output of a neural network before sigmoid. Can be any number (positive or negative). Sigmoid converts it to a probability (0 to 1).</p>
+<p><strong>Loss</strong> — A number that measures how wrong the model is. Higher = more wrong. The model tries to make this number as small as possible.</p>
+<p><strong>Loss function</strong> — A measure of how wrong the model's predictions are. Training minimises this number.</p>
+<h2>M</h2>
+<p><strong>MixUp</strong> — A data augmentation that blends two images and their labels linearly (e.g., 70% image_A + 30% image_B).</p>
+<p><strong>Model</strong> — A mathematical function (neural network) that takes an image and outputs a prediction.</p>
+<p><strong>Momentum</strong> — In optimizers, a smoothing factor that carries information from previous gradients to stabilise updates.</p>
+<p><strong>Multi-head attention</strong> — Running several attention mechanisms in parallel, each focusing on different aspects of the input.</p>
+<h2>N</h2>
+<p><strong>NaN (Not a Number)</strong> — A numerical error that occurs when a computation produces an undefined result (like dividing by zero). The training loop checks for and skips NaN losses.</p>
+<p><strong>Neural network</strong> — A computational model inspired by the brain, made of layers of mathematical operations that transform input data into predictions.</p>
+<p><strong>Neuron</strong> — A single computational unit in a neural network. Takes inputs, multiplies by weights, adds bias, applies activation.</p>
+<p><strong>Normalisation</strong> — Scaling numbers to a standard range. Makes training more stable.</p>
+<p><strong>NumPy</strong> — A Python library for working with arrays of numbers. The foundation of scientific computing in Python.</p>
+<h2>O</h2>
+<p><strong>OHEM (Online Hard Example Mining)</strong> — A training strategy that computes the loss per sample and only backpropagates through the hardest (highest-loss) examples in each batch.</p>
+<p><strong>Optimizer</strong> — The algorithm that updates the model's weights to reduce the loss. AdamW is one type.</p>
+<p><strong>Overfitting</strong> — When a model memorises training data instead of learning general patterns. It performs well on training data but poorly on new data.</p>
+<p><strong>Oversampling</strong> — Duplicating examples from the minority class to balance the dataset.</p>
+<h2>P</h2>
+<p><strong>Parameter</strong> — A weight in the neural network. Learned during training. A small model has ~5 million parameters, a large model has ~50 million.</p>
+<p><strong>Parameters</strong> — The learned values inside a neural network (weights and biases). EfficientNet-B0 has ~5M parameters; EnsembleV6 has ~50M+.</p>
+<p><strong>Phase</strong> — A stage of training with different layers frozen/unfrozen. Phase 1 = head only, Phase 2 = head + last blocks, Phase 3 = everything.</p>
+<p><strong>Platt Scaling</strong> — A calibration method that fits a logistic regression to make probabilities match reality.</p>
+<p><strong>Platt scaling</strong> — A post-processing step that calibrates the model's output probabilities using logistic regression.</p>
+<p><strong>Precision</strong> — Of all images predicted as defective, what fraction actually is defective? High precision = few false alarms.</p>
+<p><strong>Pretrained</strong> — A model that was already trained on a large dataset (like ImageNet). We start from these weights instead of random.</p>
+<p><strong>Pseudo-Label</strong> — A label guessed by a trained model for unlabelled data. Used to augment the training set.</p>
+<p><strong>Pseudo-labeling</strong> — Using a trained model to predict labels for unlabelled data, then training on those predictions as if they were ground truth.</p>
+<h2>R</h2>
+<p><strong>Recall</strong> — Of all truly defective images, what fraction did the model catch? High recall = few missed defects.</p>
+<p><strong>Regularisation</strong> — Techniques that prevent overfitting (dropout, weight decay, label smoothing, etc.).</p>
+<p><strong>ReLU</strong> — An activation function. Outputs the input if positive, 0 if negative. Simple and effective.</p>
+<p><strong>Resume</strong> — Continuing training from a saved checkpoint instead of starting from scratch.</p>
+<p><strong>RGB / BGR</strong> — Red-Green-Blue vs. Blue-Green-Red. Different colour channel orders used by different libraries. OpenCV uses BGR, PIL uses RGB.</p>
+<p><strong>ROC AUC</strong> — Area Under the Receiver Operating Characteristic curve. A threshold-independent measure of model quality.</p>
+<h2>S</h2>
+<p><strong>Seed</strong> — A number that initialises the random generator. Same seed = same "random" numbers = reproducible results.</p>
+<p><strong>Sigmoid</strong> — A function that squashes any number into the range [0, 1]. Used to convert raw logits into probabilities.</p>
+<p><strong>Softmax</strong> — Like sigmoid but for multiple classes. Converts scores to probabilities that sum to 1.0.</p>
+<p><strong>Stage 1</strong> — The fast EfficientNet-B0 filter in the cascade pipeline.</p>
+<p><strong>Stage 2</strong> — The powerful 5-fold ensemble in the cascade pipeline.</p>
+<p><strong>Stratified Split</strong> — Splitting data while preserving the class ratio. If the full dataset is 18% defective, the validation set is also 18% defective.</p>
+<p><strong>SWA (Stochastic Weight Averaging)</strong> — Averaging the model's weights over the last N epochs. Similar to EMA but averages EQUALLY (not exponentially).</p>
+<p><strong>Swin Transformer</strong> — A Vision Transformer that uses shifted windows for efficient global attention.</p>
+<h2>T</h2>
+<p><strong>Tensor</strong> — A multi-dimensional array. A 3×256×256 tensor = 3 colour channels, 256 rows, 256 columns.</p>
+<p><strong>Test-Time Augmentation (TTA)</strong> — Running inference multiple times with different transformations and averaging results.</p>
+<p><strong>Threshold</strong> — The cutoff probability for classification. If threshold = 0.4 and probability = 0.45 → defective.</p>
+<p><strong>torch.compile</strong> — A PyTorch feature that compiles the model for faster execution. Like translating a book before reading it instead of translating each sentence.</p>
+<p><strong>Transfer Learning</strong> — Starting from a pretrained model and fine-tuning it on your data. Much faster than training from scratch.</p>
+<p><strong>Transformer</strong> — A neural network architecture that uses "attention" to process all parts of the input simultaneously. Originally for language, now used for images.</p>
+<h2>V</h2>
+<p><strong>Validation</strong> — Testing the model on data it hasn't seen during training. Measures real performance.</p>
+<p><strong>Vision Transformer (ViT)</strong> — A Transformer applied to images by dividing them into patches (like words in a sentence).</p>
+<h2>W</h2>
+<p><strong>Weight</strong> — A learned parameter in a neural network that determines how much influence each input has.</p>
+<p><strong>Weight Decay</strong> — A regularisation technique that penalises large weights. Prevents overfitting.</p>
+<p><strong>Worker</strong> — A separate process that loads images in parallel while the GPU is training.</p>
+<hr />
+<blockquote>
+<p><strong>End of Guide</strong> — You now know everything about the rim defect detection notebook (v4)!</p>
+<p>New in this version: <strong>OHEM</strong> (Section 26) and <strong>Grad-CAM Dynamic Cropping</strong> (Section 27).</p>
+<p>If something is still unclear, check the specific cell in the notebook or look at the glossary again.</p>
+</blockquote>
+  </div>
+</div>
+
+</body>
+</html>

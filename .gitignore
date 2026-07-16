@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.env
+*.zip
+*.exe
+*.crdownload
+*.exe
+runs/
+output/*.csv
+assets/*.pt
+assets/*.pkl
+.DS_Store

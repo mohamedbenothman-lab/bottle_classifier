@@ -1,0 +1,738 @@
+================================================================================
+  RIM DEFECT DETECTION — PROJECT DOCUMENTATION
+  Jupyter Notebook Reference Guide
+================================================================================
+
+This document explains every major section of the codebase so you can
+understand, present, and convert it into a Jupyter notebook. Each section
+includes: what it does, why it exists, and the exact file + line range.
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+ 1. Environment Setup & Imports
+ 2. Configuration & CLI Arguments
+ 3. Custom Augmentation Classes
+ 4. Image Transforms (Train / Validation)
+ 5. Dataset Class (RimDataset)
+ 6. Data Loading — Sampling, Splitting, DataLoaders
+ 7. Model Architecture
+    7a. Attention Modules (AttentionPool2d, CBAM)
+    7b. EnsembleModelV6 (3 backbones fused)
+ 8. Loss Functions
+ 9. EMA (Exponential Moving Average)
+10. MixUp / CutMix Data Augmentation
+11. Test-Time Augmentation (TTA)
+12. Validation & Threshold Sweep
+13. Batch Normalization Recalibration
+14. Platt Scaling Calibration
+15. Three-Phase Training Setup
+16. AMP (Mixed Precision) Setup
+17. Main Training Loop
+18. Post-Training Evaluation & SWA Finalisation
+19. PREPROCESS.PY — Rim Crop Preprocessing
+20. PREDICT.PY — Inference Pipeline
+21. REQUIREMENTS.TXT — Dependencies
+
+================================================================================
+1. ENVIRONMENT SETUP & IMPORTS
+================================================================================
+File: train_kaggle.py | Lines: 1 – 108
+
+What it does:
+  Sets the PYTORCH_CUDA_ALLOC_CONF environment variable BEFORE torch is
+  imported (this is critical — it must come first). Then imports all standard
+  libraries: OpenCV, NumPy, Pandas, PIL, PyTorch and its sub-modules
+  (nn, transforms, DataLoader, etc.).
+
+  Optional libraries are imported with try/except blocks so the script still
+  runs even if they are missing:
+    - albumentations  → richer augmentation pipeline
+    - sklearn         → AUC metric + Platt calibration
+    - torch._dynamo   → torch.compile support
+
+  ImageNet mean and std constants are defined here for normalisation.
+
+Why it matters:
+  The CUDA memory config prevents OOM fragmentation on Kaggle GPUs.
+  The fallback imports make the code portable across environments.
+
+Notebook cell suggestion: "Cell 1 — Imports & Environment"
+
+
+================================================================================
+2. CONFIGURATION & CLI ARGUMENTS
+================================================================================
+File: train_kaggle.py | Lines: 29 – 84
+
+What it does:
+  Defines all hyperparameters and file paths using argparse. On Kaggle,
+  args = parser.parse_args(args=[]) is used so defaults are applied
+  without a command line. Key parameters:
+
+  Paths:
+    --dataset       : folder of pre-cropped training images
+    --csv           : CSV with image_id and target columns
+    --out           : where to save the best checkpoint (.pt)
+    --resume        : checkpoint to resume training from
+
+  Training schedule:
+    --phase1-epochs : epochs to train head only (default 5)
+    --phase2-epochs : epochs to train head + last blocks (default 8)
+    --phase3-epochs : full model fine-tuning (default 27)
+    --swa-start     : epoch to begin Stochastic Weight Averaging (default 30)
+    --early-stop    : patience for early stopping (default 12)
+
+  Hyperparameters:
+    --batch         : batch size (default 24)
+    --lr            : base learning rate (default 5e-5)
+    --img-size      : input image size in pixels (default 260)
+    --label-smooth  : label smoothing epsilon (default 0.02)
+    --mixup-alpha   : MixUp/CutMix blend strength (default 0.1)
+    --focal-gamma   : Focal Loss focusing parameter (default 2.0)
+    --ema-decay     : EMA smoothing factor (default 0.9998)
+    --grad-clip     : gradient clipping max norm (default 0.5)
+    --accum-steps   : gradient accumulation steps (default 4)
+    --dropout-rate  : dropout applied in model head (default 0.35)
+
+  Flags:
+    --bf16          : use bfloat16 AMP on Ampere+ GPUs (default True)
+    --channels-last : NCHW → NHWC memory layout for GPU speedup (default True)
+    --compile       : torch.compile for max-autotune (default False)
+    --oversample    : duplicate minority class samples (default True)
+
+Notebook cell suggestion: "Cell 2 — Configuration"
+
+
+================================================================================
+3. CUSTOM AUGMENTATION CLASSES
+================================================================================
+File: train_kaggle.py | Lines: 110 – 251
+
+These are domain-specific augmentations written as Albumentations
+ImageOnlyTransform subclasses. They simulate real-world visual noise
+specific to industrial rim inspection images.
+
+  RadialBlur (Lines 113 – 130)
+    Simulates motion blur caused by a spinning rim during imaging.
+    Applies a diagonal convolution kernel of random size.
+
+  SpecularHighlight (Lines 133 – 154)
+    Adds a random elliptical bright spot to simulate reflections from
+    metallic rim surfaces under directional lighting.
+
+  ScratchSimulation (Lines 157 – 179)
+    Draws random thin lines at random angles to simulate surface scratches.
+    Uses cv2.line with near-white colours.
+
+  SectorMask (Lines 182 – 202)
+    Blacks out (fills with mean colour) a random angular sector of the image,
+    simulating occlusion or partial capture of the rim.
+
+  RimSpecificAug (Lines 205 – 250)
+    Picks one of three modes randomly:
+      "vignette" : darkens image edges toward the rim border
+      "ring"     : adds a faint circular ring artefact
+      "fixture"  : adds a thick bar on one side (mounting fixture shadow)
+
+Notebook cell suggestion: "Cell 3 — Custom Augmentations"
+
+
+================================================================================
+4. IMAGE TRANSFORMS (TRAIN / VALIDATION)
+================================================================================
+File: train_kaggle.py | Lines: 252 – 343
+
+  _make_train_transform(img_size, heavy=True) | Lines: 255 – 328
+    heavy=False (used in phases 1 & 2 — faster):
+      Random 90° rotation, horizontal/vertical flips,
+      brightness/contrast jitter, Gaussian noise, ImageNet normalisation.
+
+    heavy=True (used in phase 3 — full augmentation):
+      Everything above PLUS:
+        ShiftScaleRotate, ElasticTransform, HueSaturationValue, CLAHE,
+        RandomGamma, ISONoise, MultiplicativeNoise, MotionBlur,
+        GaussianBlur, MedianBlur, CoarseDropout (random rectangle erasure),
+        and all 5 custom augmentations above.
+
+    Falls back to torchvision T.Compose() if albumentations is not installed.
+
+  _make_val_transform() | Lines: 331 – 343
+    Minimal transform: only ImageNet normalisation + ToTensor.
+    No augmentation — deterministic for reproducible validation scores.
+
+Notebook cell suggestion: "Cell 4 — Transforms"
+
+
+================================================================================
+5. DATASET CLASS (RimDataset)
+================================================================================
+File: train_kaggle.py | Lines: 345 – 494
+
+  RimDataset (Lines: 348 – 494)
+    PyTorch Dataset that loads pre-cropped rim images from disk.
+
+    Key features:
+      cache=True  : preloads ALL images into RAM at startup.
+                    Recommended for the validation set to eliminate
+                    disk I/O during validation.
+      cache=False : reads images from disk on every __getitem__ call.
+
+      multi_scale : randomly picks from 3 resize scales
+                    (85%, 100%, 115% of img_size) per sample.
+                    Acts as an additional augmentation.
+
+    _preload() (Lines: 370 – 378)
+      Loops over all samples and caches numpy arrays in self._img_cache.
+
+    _read_img() (Lines: 380 – 384)
+      Opens image with PIL, converts to RGB, resizes to target size.
+
+    __getitem__() (Lines: 389 – ~494)
+      Returns (tensor, label). Applies transform (albumentations or
+      torchvision) and handles multi-scale resizing.
+
+Notebook cell suggestion: "Cell 5 — Dataset"
+
+
+================================================================================
+6. DATA LOADING — SAMPLING, SPLITTING, DATALOADERS
+================================================================================
+File: train_kaggle.py | Lines: ~435 – 577
+
+  _load_samples() (around Line 435)
+    Reads the CSV, resolves image paths, and returns a list of
+    (path, label) tuples. Skips rows where the image file is missing.
+
+  _split_samples() (around Line 455)
+    Stratified train/val/test split. Ensures both classes appear in
+    val and test sets. Controlled by --val-split and --test-split.
+
+  _oversample_minority() (around Line 475)
+    Duplicates minority-class (defective) samples so both classes
+    are equally represented before training starts.
+
+  _make_sampler() (Lines: 498 – 505)
+    Alternative to oversampling: builds a WeightedRandomSampler that
+    samples defective images more frequently without duplication.
+
+  _make_loaders() (Lines: 508 – 577)
+    Assembles the three DataLoader objects (train, val, test).
+    - Train: shuffle=True (or sampler if no oversampling),
+             drop_last=True, persistent_workers=True
+    - Val: no shuffle, cache loaded into RAM
+    - Test: same as val
+
+Notebook cell suggestion: "Cell 6 — Data Splitting & DataLoaders"
+
+
+================================================================================
+7a. ATTENTION MODULES
+================================================================================
+File: train_kaggle.py | Lines: 582 – 624
+
+  AttentionPool2d (Lines: 582 – 592)
+    Replaces global average pooling at the end of each backbone.
+    A 1×1 convolution scores each spatial position. Softmax normalises
+    scores across H×W. Output is a weighted sum — the model learns to
+    focus on the most discriminative spatial regions (e.g., crack location
+    on the rim).
+
+  CBAM — Convolutional Block Attention Module (Lines: 595 – 615)
+    Applied to each backbone's feature map BEFORE the attention pooling.
+    Two sequential attention gates:
+      Channel attention : shared 2-layer MLP on average-pooled and
+                          max-pooled channel vectors — rescales channels
+      Spatial attention : 7×7 conv on stacked mean/max maps — rescales
+                          pixels
+    Together these suppress background noise and amplify defect features.
+
+  _get_out_channels() (Lines: 618 – 624)
+    Helper to infer the output channel count of a backbone by running
+    a dummy tensor through it. Used during model construction.
+
+Notebook cell suggestion: "Cell 7a — Attention Modules"
+
+
+================================================================================
+7b. ENSEMBLE MODEL V6
+================================================================================
+File: train_kaggle.py | Lines: 627 – 722
+
+  EnsembleModelV6 (Lines: 627 – 716)
+    The main model. Combines three pretrained backbones in parallel:
+
+      EfficientNet-B4  (Lines: 634 – 644)
+        Split into b4_stem (first 6 feature blocks) and b4_last (rest).
+        This split enables phase-wise unfreezing.
+
+      RegNetY-8GF  (Lines: 646 – 656)
+        A stronger alternative to ResNet-50. Split into rn_stem
+        (stem + first 3 trunk stages) and rn_last (final stage).
+
+      ConvNeXt-Small  (Lines: 658 – 668)
+        Modern convolutional backbone. Split into cx_stem and cx_last.
+
+    Each backbone:
+      → CBAM → AttentionPool2d → Linear(320) + GELU + Dropout
+
+    Fusion (Lines: 677 – 714):
+      Backbone outputs are stacked as tokens and passed through a
+      Multi-Head Cross-Attention layer (8 heads, embed_dim=320).
+      This lets the 3 backbones "vote" and refine each other's features.
+      The attended tokens are concatenated (960-dim) and gated by a
+      learned sigmoid gate (fusion_gate).
+
+    Classification head (Lines: 685 – 690):
+      960 → 512 → 256 → 128 (GELU + Dropout at each step)
+      Two output heads:
+        binary_head   : predicts defect probability (used at inference)
+        severity_head : auxiliary regression on defect severity
+                        (regularises training, ignored at inference)
+
+  build_model() (Lines: 719 – 722)
+    Convenience function — instantiates EnsembleModelV6 with args.
+
+Notebook cell suggestion: "Cell 7b — Model Architecture"
+
+
+================================================================================
+8. LOSS FUNCTIONS
+================================================================================
+File: train_kaggle.py | Lines: 724 – 779
+
+  FocalLossWithLogits (Lines: 727 – 741)
+    Standard Focal Loss for binary classification. Reduces the weight of
+    easy negative examples so the model focuses on hard positives (rare
+    defects). gamma=2.0 is a standard choice. Supports label smoothing
+    and class-weighted pos_weight.
+
+  AsymmetricLoss (Lines: 744 – 762)
+    ASL uses different focusing exponents for positive (gamma_pos=1) and
+    negative (gamma_neg=4) samples. It clips easy negatives more
+    aggressively than Focal Loss — better for class-imbalanced datasets.
+
+  CombinedLoss (Lines: 765 – 779)
+    Weighted combination:
+      total = 0.6 * FocalLoss + 0.4 * ASL + 0.25 * MSE(severity)
+    The severity MSE acts as a soft regulariser that shares gradient
+    with the binary head.
+
+Notebook cell suggestion: "Cell 8 — Loss Functions"
+
+
+================================================================================
+9. EMA (EXPONENTIAL MOVING AVERAGE)
+================================================================================
+File: train_kaggle.py | Lines: 781 – 801
+
+  ModelEMA (Lines: 784 – 801)
+    Maintains a shadow copy of the model whose weights are a running
+    average of all past model states. The shadow model is used for
+    validation and saved as the final checkpoint.
+
+    Warmup decay (Lines: 796 – 797):
+      d = min(decay, (1 + step) / (10 + step))
+      This ramps the EMA from a fast-moving average at the start of
+      training to the full 0.9998 decay after ~100 steps.
+
+    Why use EMA?
+      EMA models generalize better than the last checkpoint because
+      they average out gradient noise. Standard practice in competitions.
+
+Notebook cell suggestion: "Cell 9 — EMA"
+
+
+================================================================================
+10. MIXUP / CUTMIX DATA AUGMENTATION
+================================================================================
+File: train_kaggle.py | Lines: 803 – 828
+
+  _mixup_cutmix(imgs, lbls, alpha=0.1) (Lines: 806 – 828)
+    Applied inside the training loop to batches of images.
+    With 40% probability (random.random() < 0.6 skips it):
+
+      MixUp (50% chance):
+        Blends two images pixel-wise: out = lam*img_A + (1-lam)*img_B
+        Labels are blended the same way (soft targets).
+
+      CutMix (50% chance):
+        Cuts a random rectangle from image B and pastes it into image A.
+        Label ratio reflects the proportion of pixels from each image.
+
+    Both techniques prevent over-confident predictions and improve
+    generalisation on small datasets.
+
+Notebook cell suggestion: "Cell 10 — MixUp / CutMix"
+
+
+================================================================================
+11. TEST-TIME AUGMENTATION (TTA)
+================================================================================
+File: train_kaggle.py | Lines: 830 – 858
+
+  _tta_predict(model, imgs, device, n_views=4) (Lines: 833 – 858)
+    Runs multiple augmented views of the same batch through the model
+    and averages the sigmoid probabilities.
+
+    n_views=4  : 4 flips only (original, h-flip, v-flip, both flips)
+                 Used during training validation (--tta-freq)
+    n_views=16 : 4 flips × 4 rotations (0°, 90°, 180°, 270°)
+                 Used for final evaluation only (--tta-views-final=16)
+
+    TTA reduces prediction variance without retraining. Using 16 views
+    at the very end extracts maximum performance from the trained model.
+
+Notebook cell suggestion: "Cell 11 — Test-Time Augmentation"
+
+
+================================================================================
+12. VALIDATION & THRESHOLD SWEEP
+================================================================================
+File: train_kaggle.py | Lines: 860 – 947
+
+  _validate() (Lines: 863 – 915)
+    Runs the model over the val/test loader in eval mode.
+    Returns: accuracy, F1, precision, recall, AUC, raw probs, labels.
+    Supports optional TTA. Optional profiling breaks down time spent
+    in data loading, GPU forward pass, and CPU transfer.
+
+  _sweep_threshold() (Lines: 918 – 947)
+    Vectorised threshold search over [0.05, 0.96] with step 0.01.
+    All thresholds are evaluated simultaneously on GPU using broadcasting —
+    no Python loop needed (much faster than iterating thresholds).
+    Returns the threshold with the highest F1 score.
+
+    Why sweep thresholds?
+      For imbalanced datasets the best decision boundary is rarely 0.5.
+      The sweep finds the threshold that maximises F1 on the validation set.
+
+Notebook cell suggestion: "Cell 12 — Validation"
+
+
+================================================================================
+13. BATCH NORMALISATION RECALIBRATION
+================================================================================
+File: train_kaggle.py | Lines: 949 – 963
+
+  _recalibrate_bn(model, loader, device, n_batches=25) (Lines: 952 – 963)
+    After EMA shadow weights are copied, BN running statistics (mean, variance)
+    may be stale because the shadow model never saw real forward passes.
+    This function runs the model in train mode (no gradients) for 25 batches
+    to recalculate correct BN statistics before saving the checkpoint.
+
+Notebook cell suggestion: Include in "Cell 13 — Calibration"
+
+
+================================================================================
+14. PLATT SCALING CALIBRATION
+================================================================================
+File: train_kaggle.py | Lines: 965 – 984
+
+  _calibrate_model() (Lines: 968 – 984)
+    Fits a Logistic Regression on (raw_logit → true_label) pairs from
+    the validation set. Saves the fitted calibrator to calibrator.pkl.
+    At inference time, raw sigmoid outputs pass through this calibrator
+    to produce well-calibrated probabilities (closer to true likelihoods).
+
+    Why calibrate?
+      Neural networks are often overconfident. Calibrated probabilities
+      give more reliable thresholding.
+
+Notebook cell suggestion: "Cell 13 — BN Recal & Calibration"
+
+
+================================================================================
+15. THREE-PHASE TRAINING SETUP
+================================================================================
+File: train_kaggle.py | Lines: 986 – 1056
+
+  _setup_phase(model, phase, args, n_epochs) (Lines: 989 – 1056)
+    Implements progressive unfreezing — a transfer learning strategy
+    that avoids destroying pretrained features early in training.
+
+    Phase 1 — Head warm-up (Lines: 1003 – 1015)
+      ALL backbone weights frozen. Only the classification head,
+      cross-attention, and fusion gate are trained.
+      Optimizer: AdamW, lr=base_lr.
+      Duration: --phase1-epochs (default 5)
+      Purpose: initialise the head before touching the backbone.
+
+    Phase 2 — Head + last blocks (Lines: 1017 – 1033)
+      Backbone stems still frozen. Last blocks of each backbone unfrozen.
+      Differential LR: head = base_lr, last blocks = base_lr × 0.1
+      Optimizer: AdamW with per-group LRs.
+      Duration: --phase2-epochs (default 8)
+      Purpose: adapt the last feature extractor layers to the rim domain.
+
+    Phase 3 — Full model (Lines: 1035 – 1048)
+      All parameters trainable.
+      Differential LR: backbone = base_lr × 0.02–0.04, head = base_lr
+      Duration: --phase3-epochs (default 27)
+      Purpose: end-to-end fine-tuning with heavy augmentation.
+
+Notebook cell suggestion: "Cell 15 — Phase Setup"
+
+
+================================================================================
+16. AMP (AUTOMATIC MIXED PRECISION) SETUP
+================================================================================
+File: train_kaggle.py | Lines: 1058 – 1084
+
+  _setup_amp(device, want_bf16) (Lines: 1061 – 1084)
+    Selects the right precision mode based on GPU generation:
+
+      Ampere+ (A100, L4, RTX 3090+, sm_80+):
+        bfloat16 — stable, no loss scaler needed.
+
+      Volta / Turing (V100, T4, sm_70/75):
+        AMP disabled — fp16 causes NaN explosions with this model size.
+        Falls back to fp32.
+
+      CPU:
+        AMP disabled, fp32.
+
+Notebook cell suggestion: Include in "Cell 16 — Training Loop Setup"
+
+
+================================================================================
+17. MAIN TRAINING LOOP
+================================================================================
+File: train_kaggle.py | Lines: 1086 – 1302
+
+  train() (Lines: 1089 – 1302)
+
+  Seed & device setup (Lines: 1090 – 1103)
+    Sets seeds for reproducibility (random, numpy, torch, CUDA).
+    Enables cudnn.benchmark and TF32 on CUDA for throughput.
+
+  Data preparation (Lines: 1107 – 1121)
+    Loads samples, splits into train/val/test, builds DataLoaders.
+    Saves val_split.csv for later analysis.
+
+  Model & EMA setup (Lines: 1123 – 1141)
+    Builds model, optionally applies channels-last memory layout,
+    torch.compile, and wraps in ModelEMA.
+
+  Loss setup (Lines: 1143 – 1151)
+    Calculates pos_weight from class counts, initialises FocalLoss,
+    ASL, and CombinedLoss.
+
+  SWA setup (Lines: 1154 – 1162)
+    Wraps model in AveragedModel for Stochastic Weight Averaging.
+    SWA begins at --swa-start epoch and uses a cosine LR annealing.
+
+  Resume logic (Lines: 1174 – 1186)
+    If a checkpoint exists at --resume, loads weights, restores epoch
+    counter and best_val_f1 to continue interrupted training.
+
+  Epoch loop (Lines: 1194 – 1302)
+    For each epoch:
+      Phase transition (triggers at phase1_end, phase2_end):
+        Switches training phase — updates which parameters are frozen
+        and rebuilds the optimizer. Heavy augmentation is activated
+        when Phase 3 begins.
+
+      Training batches:
+        MixUp/CutMix → forward (with AMP autocast) → loss →
+        backward → gradient clipping → optimizer step →
+        EMA update → LR scheduler step.
+        Gradient accumulation runs for --accum-steps before stepping.
+        NaN/Inf losses are detected and skipped.
+
+      Validation (every --val-freq epochs):
+        Uses EMA shadow model. Runs _sweep_threshold() to find the
+        best F1 and threshold. Prints F1, Precision, Recall, AUC.
+
+      Checkpoint saving:
+        Saves when val F1 improves. Runs BN recalibration before save.
+        Checkpoint contains: state_dict, epoch, best_val_f1,
+        best_threshold, ema_state.
+
+      Early stopping:
+        Stops if no improvement for --early-stop consecutive epochs.
+
+      SWA update:
+        Calls swa_model.update_parameters(model) each epoch after
+        --swa-start. Uses SWALR scheduler.
+
+Notebook cell suggestion: "Cell 17 — Training Loop" (most important cell)
+
+
+================================================================================
+18. POST-TRAINING EVALUATION & SWA FINALISATION
+================================================================================
+File: train_kaggle.py | Lines: 1379 – 1431
+
+  SWA finalisation (Lines: 1379 – 1393)
+    Recalculates BN statistics for the SWA model using update_bn().
+    Saves a separate _swa.pt checkpoint.
+    Runs a final threshold sweep on the SWA model with full TTA.
+
+  Best model reload & evaluation (Lines: 1399 – 1420)
+    Loads the best checkpoint saved during training.
+    Runs final evaluation without TTA, then fits the Platt calibrator,
+    then runs a final 16-view TTA sweep for the best possible score.
+
+  Test set evaluation (Lines: 1422 – 1427)
+    If a test split was created (--test-split > 0), evaluates the
+    best model on the held-out test set with full TTA.
+
+Notebook cell suggestion: "Cell 18 — Post-Training"
+
+
+================================================================================
+19. PREPROCESS.PY — RIM CROP PREPROCESSING
+================================================================================
+File: preprocess.py
+
+Purpose:
+  Runs ONCE before training. Crops each raw image to focus on the rim,
+  discarding irrelevant background. Saves cropped images to a cache
+  directory so training doesn't re-crop images on every epoch.
+
+  extract_rim_crop(img_bgr, size, wide_scale=1.3) | Lines: 17 – 58
+    1. Takes one channel from the BGR image (all channels are identical
+       for grayscale-on-disk images).
+    2. Applies Gaussian blur to reduce noise before circle detection.
+    3. Runs cv2.HoughCircles to find the rim circle.
+    4. If a circle is found:
+         Computes the rim width estimate (18% of radius).
+         Adds a margin (wide_scale × (rim_width + 10)).
+         Crops the bounding box around the circle.
+    5. If no circle is found: uses the full image (fallback).
+    6. Resizes the crop to (size × size).
+
+  process_single_image(task_info) | Lines: 61 – 77
+    Worker function called in parallel by ProcessPoolExecutor.
+    Skips already-processed images (idempotent restart support).
+    Returns a status string: "success", "fallback", "skipped", "failed".
+
+  main() | Lines: 80 – 165
+    - Validates paths, reads CSV.
+    - Peeks at a sample image to confirm grayscale format.
+    - Builds task list of (src_path, dest_path, img_size) tuples.
+    - Runs workers in parallel using ProcessPoolExecutor.
+    - Prints a summary: rim found / no rim / skipped / failed counts.
+
+  CLI arguments:
+    --dataset   : folder of raw training images
+    --csv       : train.csv with image_id column
+    --cache-dir : where to write cropped images
+    --img-size  : target crop size (default 300)
+    --workers   : number of parallel CPU workers (default: auto)
+
+Notebook cell suggestion: "Cell 0 — Preprocessing" (run this first, separately)
+
+
+================================================================================
+20. PREDICT.PY — INFERENCE PIPELINE
+================================================================================
+File: predict.py
+
+Purpose:
+  Takes a folder of unlabelled test images and a trained checkpoint,
+  runs inference, and outputs a submission CSV (image_id, target).
+
+  extract_rim_crop() | Lines: 72 – 92
+    Same rim-cropping logic as preprocess.py but applied at inference
+    time on-the-fly if no pre-cropped cache is available.
+
+  TestDataset | Lines: 96 – 117
+    Loads test images. Checks for cached (pre-cropped) images first.
+    Falls back to on-the-fly cropping if cache is missing.
+
+  AttentionPool2d, CBAM | Lines: 121 – 170
+    Identical to train_kaggle.py — must match exactly for the checkpoint
+    to load correctly (state_dict key compatibility).
+
+  EfficientNetB2WithCBAM, ResNet50WithCBAM, ConvNeXtTinyWithCBAM | Lines: 174 – 252
+    Note: predict.py uses the OLDER V5 architecture (EfficientNet-B2,
+    ResNet-50, ConvNeXt-Tiny) rather than the V6 ensemble. The model
+    must match the checkpoint being loaded.
+
+  EnsembleModelV5 | Lines: ~230 – 287
+    Concatenates the three backbone outputs → fusion attention gate →
+    shared classifier → binary_head + severity_head.
+
+  predict_batch(model, imgs, use_tta=False) | Lines: 292 – 316
+    Runs a batch through the model. With TTA enabled, runs 6 views
+    (original + 2 flips + 3 rotations) and averages logits before sigmoid.
+
+  predict() | Lines: 320 – 443
+    Main inference function:
+    1. Loads optional Platt calibrator (.pkl).
+    2. Discovers all image files in --test-dir.
+    3. Loads model checkpoint and validates architecture metadata.
+    4. Applies val transform (resize + ImageNet normalisation).
+    5. Runs inference loop with optional TTA and optional calibration.
+    6. Applies threshold to produce binary labels.
+    7. Writes submission.csv (image_id, target).
+    8. Prints statistics: good/faulty counts, prob min/max/mean.
+
+  CLI arguments:
+    --model       : path to .pt checkpoint (default: assets/model_v5.pt)
+    --calibrator  : path to calibrator.pkl (optional)
+    --test-dir    : folder of test images
+    --cache-dir   : pre-cropped cache folder (optional)
+    --out         : output CSV filename (default: submission.csv)
+    --threshold   : decision boundary (use value printed at end of training)
+    --batch       : batch size (default 32)
+    --img-size    : must match training --img-size (default 260)
+    --tta         : enable 6-view TTA (slower but more accurate)
+
+Notebook cell suggestion: "Cell 20 — Inference / Submission"
+
+
+================================================================================
+21. REQUIREMENTS.TXT — DEPENDENCIES
+================================================================================
+File: requirements.txt
+
+  opencv-python   : image reading, Gaussian blur, HoughCircles, resize
+  numpy           : array operations, augmentation math
+  torch           : neural network framework
+  torchvision     : pretrained backbones (EfficientNet, RegNet, ConvNeXt)
+  scikit-learn    : AUC metric, Platt scaling (LogisticRegression)
+  pillow          : image loading in dataset (PIL.Image)
+  tqdm            : progress bars in training and preprocessing
+  pandas          : reading train.csv, writing submission.csv
+  tensorboard     : optional — for loss/metric visualisation
+  triton-windows  : Windows-only torch.compile backend (can be removed on Linux)
+
+  Optional (install separately for full augmentation):
+    albumentations : advanced augmentation pipeline used in training
+
+  Install command:
+    pip install -r requirements.txt
+    pip install albumentations  # recommended
+
+
+================================================================================
+RECOMMENDED JUPYTER NOTEBOOK CELL ORDER
+================================================================================
+
+Cell 0  — Preprocessing     (run preprocess.py logic here or as subprocess)
+Cell 1  — Imports           (train_kaggle.py lines 1–108)
+Cell 2  — Configuration     (train_kaggle.py lines 29–84)
+Cell 3  — Custom Augs       (train_kaggle.py lines 110–251)
+Cell 4  — Transforms        (train_kaggle.py lines 252–343)
+Cell 5  — Dataset           (train_kaggle.py lines 345–494)
+Cell 6  — Data Loaders      (train_kaggle.py lines ~435–577)
+Cell 7a — Attention Modules (train_kaggle.py lines 582–624)
+Cell 7b — Model             (train_kaggle.py lines 627–722)
+Cell 8  — Loss Functions    (train_kaggle.py lines 724–779)
+Cell 9  — EMA               (train_kaggle.py lines 781–801)
+Cell 10 — MixUp/CutMix      (train_kaggle.py lines 803–828)
+Cell 11 — TTA               (train_kaggle.py lines 830–858)
+Cell 12 — Validation        (train_kaggle.py lines 860–947)
+Cell 13 — BN Recal + Cal    (train_kaggle.py lines 949–984)
+Cell 14 — Phase Setup       (train_kaggle.py lines 986–1056)
+Cell 15 — AMP Setup         (train_kaggle.py lines 1058–1084)
+Cell 16 — Training Loop     (train_kaggle.py lines 1086–1302)
+Cell 17 — Post-Training     (train_kaggle.py lines 1379–1431)
+Cell 18 — Inference         (predict.py — full file)
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================

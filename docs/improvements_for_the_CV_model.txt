@@ -1,0 +1,244 @@
+improvements for the CV model : 
+Here’s where I’d focus.
+
+Mine your mistakes aggressively
+
+This is the highest ROI step.
+
+After training:
+
+run inference on all training data
+collect:
+false positives
+false negatives
+low confidence samples (0.4 to 0.6 probability)
+
+Then inspect them manually.
+
+Why:
+Your model is telling you where the boundary is unclear.
+
+Usually you’ll find:
+
+mislabeled images
+weird lighting
+borderline defects
+crop failures
+duplicate-looking samples
+
+Even 1 to 3 percent label noise hurts a lot with 36k.
+
+In industrial datasets, cleaning 500 bad labels often beats adding 10k images.
+
+Hard negative mining
+
+You already have sampler balancing, but not hard mining.
+
+Do this:
+
+after epoch 5 or after first training
+identify negatives predicted as faulty with high confidence
+
+Oversample them in next round.
+
+Pseudo-flow:
+
+round 1:
+normal training
+
+collect:
+hard_negatives = false positives
+
+round 2:
+train with:
+train_set + 2x hard_negatives
+
+This sharpens decision boundaries.
+
+For defect detection, this is often a major jump.
+
+Higher resolution
+
+You currently resize to 260 because of EfficientNet-B2/B0.
+
+For subtle rim defects, tiny scratches or dents matter.
+
+Try:
+
+EfficientNet-B3 or B4
+300 to 380 px
+
+Example:
+
+B3 = 300
+B4 = 380
+
+Tradeoff:
+slower training, often better defect sensitivity.
+
+Since you have 36k, model capacity is less risky.
+
+Two-view training
+
+This is often huge for industrial inspection.
+
+Instead of one crop:
+train on:
+
+tight rim crop
+slightly wider crop
+
+Reason:
+Some defects need local texture.
+Others need context.
+
+Options:
+A.
+Train two separate models.
+
+model_local
+model_global
+
+Average logits.
+
+Or B.
+Concatenate both as channels.
+
+Ensembling often adds 1 to 3 percent.
+
+Replace BCE with focal loss
+
+Since defects are rare and likely heterogeneous:
+
+BCE is fine, but focal loss often better.
+
+Why:
+focuses on hard examples.
+
+Typical:
+
+gamma=2.0
+alpha=0.25
+
+This often reduces easy negative domination.
+
+Especially useful when:
+
+many clean images
+few tricky defects
+Use test-time augmentation
+
+Cheap improvement.
+
+At inference:
+
+average predictions over:
+
+original
+horizontal flip
+slight rotation
+brightness shift
+
+Example:
+pred = mean([
+model(img),
+model(hflip(img)),
+model(rot(img)),
+])
+
+Often small but reliable gain.
+
+Better augmentations for industrial images
+
+Your current augmentations are decent, but a bit generic.
+
+Less useful:
+
+RandomPerspective
+strong rotations, depending on domain
+
+More useful:
+
+CLAHE
+slight blur
+noise injection
+brightness/contrast shifts
+small affine transforms
+
+Industrial defects are texture-sensitive.
+
+Albumentations usually beats torchvision here.
+
+Strong candidates:
+
+CLAHE
+RandomBrightnessContrast
+MotionBlur
+GaussNoise
+Ensemble models
+
+If leaderboard score matters, ensembles are the boring truth.
+
+Train:
+
+EfficientNet-B0
+EfficientNet-B2
+ResNet50 or ConvNeXt tiny
+
+Average logits.
+
+Why:
+Different architectures make different mistakes.
+
+Ensemble often beats single fancy model.
+
+Separate threshold by business goal
+
+Do not optimize only F1.
+
+Sometimes leaderboard or real metric rewards something else.
+
+For example:
+
+maximize recall under FP constraint
+maximize precision for faulty class
+
+Try threshold sweeps on:
+
+F1
+recall
+precision
+custom metric
+
+Sometimes score gain is pure thresholding.
+
+Pseudo-labeling if unlabeled data exists
+
+If you have extra unlabeled images:
+
+infer with high confidence
+keep predictions >0.98 or <0.02
+retrain
+
+This is free extra data.
+
+Very effective when data distribution matches.
+
+Most likely biggest gains for you, ranked:
+
+Error analysis + label cleaning
+Hard negative mining
+Higher resolution / bigger backbone
+Ensemble
+Focal loss
+TTA
+
+If you’re already stuck with 36k and a solid pipeline, I’d bet your biggest hidden issue is one of these:
+
+label noise
+crop inconsistency
+hard borderline negatives
+
+Those three are the usual score killers.
+
+What score are you currently getting, and on what metric exactly, F1, accuracy, Kaggle public score, recall?

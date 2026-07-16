@@ -1,0 +1,9 @@
+python train_cnn_v2.py --batch 8 --accum-steps 4 --grad-checkpoint --bf16 --channels-last --no-compile --workers 4 --lr 1e-4 --phase1-epochs 5  --phase2-epochs 10  --phase3-epochs 45 --ema-decay 0.9995 --mixup-alpha 0.3 --focal-gamma 2.5 --label-smooth 0.05 --grad-clip 1.0 --early-stop 12 --swa-start 40 --tta-freq 5 --oversample 
+
+for omar pc : 
+python train_cnn_v2.py --batch 16 --accum-steps 2 --grad-checkpoint --bf16 --no-compile --workers 4 
+
+if the pc is 12gb of VRAM not 8gb :
+python preprocess.py --img-size 300
+
+python train_cnn_v2.py --batch 24 --accum-steps 1 --img-size 300 --bf16 --channels-last --no-compile --workers 6 --use-tta --lr 1e-4 

@@ -16,3 +16,4 @@ pandas
 
 
 tensorboard
+triton-windows
