@@ -19,25 +19,7 @@ This project implements a real-time computer vision pipeline for detecting defec
 | Standard | EfficientNet-B0 | Any GPU | Lightweight, fast training |
 | Ensemble (v2) | EfficientNet-B2 + ConvNeXt-Tiny | High-end GPU | ~2% higher accuracy — recommended |
 
----
 
-## Project Structure
-
-```
-bottle_classifier/
-├── assets/             # Model weights (model.pt) and validation metadata
-├── core/               # Core inspection logic (bottle_inspector.py)
-├── utils/              # UI and smoothing helpers
-├── runs/               # TensorBoard training logs
-├── preprocess.py       # High-speed parallel rim cropping
-├── train_cnn.py        # Standard EfficientNet-B0 training
-├── train_cnn_v2.py     # Ensemble (B2 + ConvNeXt-Tiny) training
-├── main.py             # Real-time camera inspection entry point
-├── predict.py          # Batch inference script for test image sets
-└── compare.py          # Validation metrics and threshold optimization
-```
-
----
 
 ## Quick Start
 
